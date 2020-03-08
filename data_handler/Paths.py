@@ -1,0 +1,7 @@
+WhiteBallExpFolder = 'C:\\cStorage\\Datasets\\WhiteBallExp\\'
+MergedVideosFolder = WhiteBallExpFolder + 'MergedVideos\\'
+TrailsFolder = WhiteBallExpFolder + 'trails\\'
+TrailsDataFolder = TrailsFolder + 'data\\'
+TrailVideosFolder = TrailsFolder + 'videos\\'
+TrailSnapshotsFolder = TrailsFolder + 'snapshots\\'
+Subjects = WhiteBallExpFolder + 'Subjects\\'
