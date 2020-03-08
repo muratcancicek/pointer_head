@@ -2,3 +2,4 @@ ssh muratcan@cvlabgpu.soe.ucsc.edu
 
 C:\cStorage\Program_Files\python_envs\tk36\Scripts\activate
 cd C:\Users\MSI2\Documents\Offline_Projects\pointer_head\data_handler
+python run_data_handler.py
