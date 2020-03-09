@@ -1,7 +1,8 @@
 import os, numpy as np
+import Paths
 
 class DataHandler(object):
-    def __init__(self, dataFolder = 'data/', readAllDataNow = False):
+    def __init__(self, dataFolder = Paths.TrailsDataFolder, readAllDataNow = False):
         super()
         self.dataFolder = dataFolder
         self.trails = {}
@@ -16,7 +17,7 @@ class DataHandler(object):
         self.trails[tName] = {}
         self.trails[tName]['meta'] = {k: int(v) for k, v in zip(keys, values)
                                       if v.isnumeric()}
-        self.trails[tName]['meta']['frameCount'] = float(values[3])
+        self.trails[tName]['meta']['frameCount'] = int(float(values[3]))
         self.trails[tName]['meta']['name'] = tName
         return tName, self.trails[tName]
     

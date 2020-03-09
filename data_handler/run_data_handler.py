@@ -16,8 +16,8 @@ def testVideoMerger():
 
 
 def main():
-    #testDataHandler()
-    testVideoMerger()
+    testDataHandler()
+    #testVideoMerger()
 
 if __name__ == '__main__':
     main()
