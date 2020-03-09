@@ -5,3 +5,5 @@
 /.vs
 /pointer_head.sln
 /data_handler/data_handler.pyproj
+/data_handler/data
+/data_handler/__pycache__
