@@ -6,12 +6,12 @@ class DataHandler(object):
         super()
         self.dataFolder = dataFolder
         self.trails = {}
+        self.subjects = {}
         if readAllDataNow:
             self.readAllTrails()
 
     def readTrailMetaData(self, file):
         keys = file.readline()[:-1].split(',')
-        print(keys)
         values = file.readline()[:-1].split(',')
         tName = values[0]
         self.trails[tName] = {}
@@ -43,8 +43,10 @@ class DataHandler(object):
             self.trails[tName]['data'][l, :] = [int(v) for v in values]
         return self.trails[tName]['data']
     
-    def readTrail(self, fileName):
-        file = open(self.dataFolder + fileName, 'r')
+    def readTrail(self, tName):
+        if '.csv' != tName[-4:]: 
+                tName += '.csv'
+        file = open(self.dataFolder + tName, 'r')
         tName, _ = self.readTrailMetaData(file)
         self.readTrailSummary(tName, file)
         self.readTrailGroundTruth(tName, file)
@@ -52,10 +54,55 @@ class DataHandler(object):
         print('\r%s has been read' % tName, end = '\r')
         return self.trails[tName]
 
+    def getTrail(self, tName):
+        if '.csv' == tName[-4:]: 
+            tName = tName[-4:]
+        if tName in self.trails:
+            return self.trails[tName]
+        else:
+            return self.readTrail(tName)
+    
     def readAllTrails(self):
         trailList = os.listdir(self.dataFolder)
         for fileName in trailList:
-            self.readTrail(fileName)
+            self.getTrail(fileName)
         return self.trails
+        
+    def addSubject(self, id):
+        if isinstance(id, int): id = str(id)
+        if id in self.subjects:
+            return self.subjects[id]
+        self.subjects[id] = {}
+        self.subjects[id]['Folder'] = Paths.SubjectsFolder + id + Paths.sep
+        self.subjects[id]['VideoList'] = os.listdir(self.subjects[id]['Folder'])
+        return self.subjects[id]
     
+    def __getSubjectVideoTrailName(self, id, subjectVideoName):
+        subjectVideoNameParts = subjectVideoName.split('_')
+        return '_'.join(subjectVideoNameParts[:subjectVideoNameParts.index(id)])
 
+    def __findSubjectVideoName(self, id, tName):
+        subjectVideoNames = [s for s in self.subjects[id]['VideoList']
+                            if tName == self.__getSubjectVideoTrailName(id, s)]
+        return subjectVideoNames[-1]
+
+    def _readSubjectTrail(self, id, tName):
+        self.trails[tName] = self.getTrail(tName)
+        subjectVideoName = self.__findSubjectVideoName(id, tName)
+        self.subjects[id][tName] = {}
+        self.subjects[id][tName]['t'] = self.trails[tName]
+        subjectVideoPath = self.subjects[id]['Folder'] + subjectVideoName
+        self.subjects[id][tName]['VideoPath'] = subjectVideoPath
+        return self.subjects[id][tName]
+
+    def readSubjectTrail(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.addSubject(id)
+        return self._readSubjectTrail(id, tName)
+    
+    def readAllSubjectTrails(self, id):
+        if isinstance(id, int): id = str(id)
+        self.addSubject(id)
+        for subjectVideoName in self.subjects[id]['VideoList']:
+            self._readSubjectTrail(id, tName)
+        return  self.subjects[id]

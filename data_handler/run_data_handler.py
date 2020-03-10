@@ -4,13 +4,8 @@ from VideoMerger import VideoMerger
 def testDataHandler():
     handler = DataHandler(readAllDataNow = False)
     #trails = handler.readAllTrails()
-    trail = handler.readTrail('random1.csv')
-    print()
-    #print(trail['meta']['duration'])
-    #print(trail['meta']['frameCount'])
-    print(trail['data'].shape)
-    print(trail['data'])
-    #print(trail['data'][-1])
+    subjectTrail = handler.readSubjectTrail(1, 'random1')
+    print(subjectTrail)
 
 def testVideoMerger():
     VideoMerger().mergeAllSubjectVideos('1')
