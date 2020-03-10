@@ -1,6 +1,6 @@
 sep = '\\'
 DATASETS_Folder = 'C:\\cStorage\\Datasets' + sep
-WhiteBallExpFolder = 'WhiteBallExp' + sep
+WhiteBallExpFolder = DATASETS_Folder + 'WhiteBallExp' + sep
 MergedVideosFolder = WhiteBallExpFolder + 'MergedVideos' + sep
 TrailsFolder = WhiteBallExpFolder + 'trails' + sep
 TrailsDataFolder = TrailsFolder + 'data' + sep
