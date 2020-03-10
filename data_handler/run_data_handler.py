@@ -6,10 +6,11 @@ def testDataHandler():
     #trails = handler.readAllTrails()
     trail = handler.readTrail('random1.csv')
     print()
-    print(trail['meta']['frameCount'])
+    #print(trail['meta']['duration'])
+    #print(trail['meta']['frameCount'])
     print(trail['data'].shape)
     print(trail['data'])
-    print(trail['data'][-1])
+    #print(trail['data'][-1])
 
 def testVideoMerger():
     VideoMerger().mergeAllSubjectVideos('1')

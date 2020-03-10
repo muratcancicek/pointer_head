@@ -17,7 +17,7 @@ class DataHandler(object):
         self.trails[tName] = {}
         self.trails[tName]['meta'] = {k: int(v) for k, v in zip(keys, values)
                                       if v.isnumeric()}
-        self.trails[tName]['meta']['frameCount'] = int(float(values[3]))
+        self.trails[tName]['meta']['duration'] = float(values[1])
         self.trails[tName]['meta']['name'] = tName
         return tName, self.trails[tName]
     
