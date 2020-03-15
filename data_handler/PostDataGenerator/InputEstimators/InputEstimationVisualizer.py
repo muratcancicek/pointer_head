@@ -1,3 +1,4 @@
+from PostDataGenerator.InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
 import cv2
 
 class InputEstimationVisualizer(object):
@@ -20,14 +21,16 @@ class InputEstimationVisualizer(object):
         return frame
      
     def addPointer(self, frame, outputValues):
-        boundaries = self._mappingFunc.getOutputBoundaries()
+        #boundaries = self._mappingFunc.getOutputBoundaries()
+        outputSize = (1920, 1080)
+        boundaries = Boundary(0, outputSize[0], 0, outputSize[1])
         (height, width, depth) = frame.shape
         (xRange, yRange, _) = boundaries.getRanges()
         if xRange != width or yRange != height:
             xRange, yRange = boundaries.getVolumeAbsRatio(outputValues)
             x, y = int(xRange*width), int(yRange*height)
         else:
-            x, y = outputValues.astype(int)
+            x, y = outputValues[:2].astype(int)
         cv2.circle(frame, (x, y), 1, (0, 0, 235), 56, cv2.LINE_AA)
         return frame
 
@@ -53,20 +56,28 @@ class InputEstimationVisualizer(object):
                      landmarks = None, outputValues = None, delay = 1):
         frame = self.addAllInputs(frame, pPoints, landmarks, outputValues)
         return self.showFrame(frame, delay)
-
+    
     def playSubjectVideoWithAllInputs(self, estimator, streamer):
         for frame in streamer:
             annotations = estimator.estimateInputValuesWithAnnotations(frame)
-            #annotations = self._mappingFunc.calculateOutputValuesWithAnnotations(subjFrame)
             inputValues, pPoints, landmarks = annotations
             k = self.showFrameWithAllInputs(frame, pPoints, landmarks)
             if not k:
                 break
         return
     
+    def playSubjectVideoWithHeadGaze(self, mappingFunc, streamer):
+        for frame in streamer:
+            annotations = mappingFunc.calculateOutputValuesWithAnnotations(frame)
+            outputValues, inputValues, pPoints, landmarks = annotations
+            k = self.showFrameWithAllInputs(frame, pPoints, landmarks, inputValues)
+            if not k:
+                break
+        return
+    
     def replaySubjectVideoWithPostData(self, postData, streamer):
         jointStreamer = zip(*(postData + (streamer,)))
-        for inputValues, landmarks, pPoints, frame in jointStreamer:
+        for inputValues, pPoints, landmarks, frame in jointStreamer:
             k = self.showFrameWithAllInputs(frame, pPoints, landmarks)
             if not k:
                 break

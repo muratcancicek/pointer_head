@@ -1,4 +1,4 @@
-#from PostDataGenerator.InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
+from PostDataGenerator.InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
 from PostDataGenerator.InputEstimators.InputEstimationVisualizer import InputEstimationVisualizer
 from PostDataGenerator.InputEstimators.PoseEstimators import PoseEstimator, HeadGazer
 #from PostDataGenerator.InputEstimators.LandmarkDetectors import LandmarkDetector
@@ -12,12 +12,8 @@ import os
 class PostDataGenerator(object):
     def __init__(self):
         super()
-        self.__estimator = PoseEstimator() # HeadGazer() # LandmarkDetector() # CVFaceDetector()
-        #outputSize = (1920, 1080)
-        #boundary = Boundary(0, outputSize[0], 0, outputSize[1])
+        self.__estimator = HeadGazer() # PoseEstimator() # LandmarkDetector() # CVFaceDetector()
         self.__visualizer = InputEstimationVisualizer()
-        #self._mappingFunc = DynamicMapping(self.__estimator, boundary)
-        #self._mappingFunc = StaticMapping(self.__estimator, boundary)
 
     def openVideo(self, path):
         cap = cv2.VideoCapture(path)
@@ -54,10 +50,19 @@ class PostDataGenerator(object):
         recorder = None
         print('\r%s and %s have been merged.' % \
             (subjectVideoPath.split(Paths.sep)[-1], trailName), end = '\r')
-
+        
     def playSubjectVideoWithAllInputs(self, subjectVideoPath):
         streamer = self.openVideo(subjectVideoPath)
         self.__visualizer.playSubjectVideoWithAllInputs(self.__estimator, streamer)
+        return
+
+    def playSubjectVideoWithHeadGaze(self, subjectVideoPath):
+        outputSize = (1920, 1080)
+        boundary = Boundary(0, outputSize[0], 0, outputSize[1])
+        #self._mappingFunc = DynamicMapping(self.__estimator, boundary)
+        mappingFunc = StaticMapping(self.__estimator, boundary)
+        streamer = self.openVideo(subjectVideoPath)
+        self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer)
         return
 
     def getPostDataFromSubjectVideo(self, subjectVideoPath, frameCount, tName = ''):

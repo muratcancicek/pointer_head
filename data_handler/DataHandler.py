@@ -108,13 +108,20 @@ class DataHandler(object):
             tName = self.__getSubjectVideoTrailName(id, subjectVideoName)
             self._readSubjectTrail(id, tName)
         return  self.subjects[id]
-
-    def playSubjectTrailWithAllInputs(self, id, tName):
+    
+    def __playSubjectTrailWith(self, id, tName):
         if isinstance(id, int): id = str(id)
         self.readSubjectTrail(id, tName)
-        postDataGenerator = PostDataGenerator()
-        path = self.subjects[id][tName]['VideoPath']
-        postDataGenerator.playSubjectVideoWithAllInputs(path)
+        gen = PostDataGenerator()
+        return gen, self.subjects[id][tName]['VideoPath']
+
+    def playSubjectTrailWithAllInputs(self, id, tName):
+        gen, path = self.__playSubjectTrailWith(id, tName)
+        gen.playSubjectVideoWithAllInputs(path)
+
+    def playSubjectTrailWithHeadGaze(self, id, tName):
+        gen, path = self.__playSubjectTrailWith(id, tName)
+        gen.playSubjectVideoWithHeadGaze(path)
 
     def generatePostDataFromSubjectVideo(self, id, tName):
         if isinstance(id, int): id = str(id)

@@ -305,8 +305,8 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         #self._translation_vector = np.array([[-14.97821226], [-10.62040383], [-120]])#-2053.03596872
         
         self._front_depth = 500
-        self._rectCorners3D = self._get_3d_points(rear_size = 4, rear_depth = 0, 
-                                                  front_size = 1, front_depth = self._front_depth)
+        self._rectCorners3D = self._get_3d_points(rear_size = 40, rear_depth = 0, 
+                                                  front_size = 40, front_depth = self._front_depth)
         self._objectPointsVec = [self._faceModelPoints]
         self._imagePointsVec = []
 
@@ -353,21 +353,21 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         if recalculatePose:
                 self.calculatePose(shape)
         if not (self._rotation_vector is None or self._translation_vector is None):
-            rc = np.array([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, -1.0]]).T
-            tc = np.array([[3.0], [0.0], [0.0]])
-            f = 2667.497359647048143
-            fd = 383/1920*f
+            #rc = np.array([[-1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]]).T
+            #tc = np.array([[0.0], [0.0], [0.0]])
+            #f = 2667.497359647048143
+            #fd = 383/1920*f
             #ps3D = self._get_points(rear_w = 192.5, rear_h = 102, rear_depth = 1200, 
             #                                      front_w = 192.5, front_h = 106, front_depth = 276)
             #point_2d, _ = cv2.projectPoints(ps3D, rc, tc, self._camera_matrix,
             #                               self._dist_coeffs)
-            self._front_depth = -self._translation_vector[2, 0]-290
             tv = '%.2f %.2f %.2f' % tuple([t[0] for t in self._translation_vector])
             rv = '%.2f %.2f %.2f' % tuple([math.degrees(t[0]) for t in self._rotation_vector])
-            print('\r[%s], [%s]' % (tv, rv), end = '\r')
+            self._front_depth = self._translation_vector[2, 0] #+  02667
+            print('\r%.2f, [%s], [%s]' % (self._front_depth, tv, rv), end = '\r')
             #print(self._front_depth)
-            self._rectCorners3D = self._get_3d_points(rear_size = 4, rear_depth = 0, 
-                                                      front_size = 1, front_depth = self._front_depth)
+            self._rectCorners3D = self._get_3d_points(rear_size = 40, rear_depth = 0, 
+                                                      front_size = 40, front_depth = self._front_depth)
             point_2d, _ = cv2.projectPoints(self._rectCorners3D, self._rotation_vector, 
                                             self._translation_vector, self._camera_matrix,
                                            self._dist_coeffs)
@@ -377,7 +377,7 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
     def calculateHeadGazeWithProjectionPoints(self, shape):
         self._pose = self.calculatePose(shape)
         self.calculateProjectionPointsAsGaze(shape)
-        output = self._projectionPoints[-1, :] - np.array([0, 1080/215*55+540])
+        output = self._projectionPoints[-1, :]# - np.array([0, 1080/215*55+540])
         
         return output, self._projectionPoints
 
