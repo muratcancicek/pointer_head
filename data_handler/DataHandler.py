@@ -1,3 +1,4 @@
+from PostDataGenerator.PostDataGenerator import PostDataGenerator
 import os, numpy as np
 import Paths
 
@@ -104,5 +105,50 @@ class DataHandler(object):
         if isinstance(id, int): id = str(id)
         self.addSubject(id)
         for subjectVideoName in self.subjects[id]['VideoList']:
+            tName = self.__getSubjectVideoTrailName(id, subjectVideoName)
             self._readSubjectTrail(id, tName)
         return  self.subjects[id]
+
+    def playSubjectTrailWithAllInputs(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.readSubjectTrail(id, tName)
+        postDataGenerator = PostDataGenerator()
+        path = self.subjects[id][tName]['VideoPath']
+        postDataGenerator.playSubjectVideoWithAllInputs(path)
+
+    def generatePostDataFromSubjectVideo(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.readSubjectTrail(id, tName)
+        postDataGenerator = PostDataGenerator()
+        path = self.subjects[id][tName]['VideoPath']
+        c =  self.subjects[id][tName]['t']['meta']['frameCount']
+        return postDataGenerator.getPostDataFromSubjectVideo(path, c, tName)
+
+    def savePostDataFromSubjectVideo(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        postData = self.generatePostDataFromSubjectVideo(id, tName)
+        fileName = self.subjects[id][tName]['t']['meta']['name']+'_PostData.csv'
+        path = Paths.PostDataFolder + id + Paths.sep + fileName 
+        np.savetxt(path, postData, delimiter=',')
+        print('\r%s has been saved successfully.' % fileName, end = '\r')  
+
+    def saveAllPostDataForSubject(self, id):
+        if isinstance(id, int): id = str(id)
+        self.readAllSubjectTrails(id)
+        for subjectVideoName in self.subjects[id]['VideoList']:
+            tName = self.__getSubjectVideoTrailName(id, subjectVideoName)
+            self.savePostDataFromSubjectVideo(id, tName) 
+
+    def loadPostDataOfSubjectVideo(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.readSubjectTrail(id, tName)
+        fileName = self.subjects[id][tName]['t']['meta']['name']+'_PostData.csv'
+        path = Paths.PostDataFolder + id + Paths.sep + fileName 
+        return np.loadtxt(path, delimiter=',')
+    
+    def replaySubjectVideoWithPostData(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        postData = self.loadPostDataOfSubjectVideo(id, tName)
+        postDataGenerator = PostDataGenerator()
+        path = self.subjects[id][tName]['VideoPath']
+        postDataGenerator.replaySubjectVideoWithPostData(postData, path)

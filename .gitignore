@@ -7,3 +7,6 @@
 /data_handler/data_handler.pyproj
 /data_handler/data
 /data_handler/__pycache__
+/data_handler/PostDataGenerator/__init__.py
+/data_handler/PostDataGenerator/InputEstimators/__pycache__
+/data_handler/PostDataGenerator/__pycache__

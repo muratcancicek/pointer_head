@@ -1,5 +1,9 @@
 ssh muratcan@cvlabgpu.soe.ucsc.edu
 
-C:\cStorage\Program_Files\python_envs\tk36\Scripts\activate
+C:\cStorage\Program_Files\python_envs\tf36\Scripts\activate
 cd C:\Users\MSI2\Documents\Offline_Projects\pointer_head\data_handler
 python run_data_handler.py
+
+[-27.09 -48.80 -678.08], [0.05 0.27 -3.23]
+[59.52 -49.05 -673.15], [-0.02 0.15 -3.07]
+[-27.09 -48.80 -678.08], [0.05 0.27 -3.23]
