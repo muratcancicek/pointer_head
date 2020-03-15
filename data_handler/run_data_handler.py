@@ -4,9 +4,9 @@ from VideoMerger import VideoMerger
 def testDataHandler():
     handler = DataHandler(readAllDataNow = False) 
     #subjectTrail = handler.saveAllPostDataForSubject(2)
-    #handler.playSubjectTrailWithAllInputs(1, 'infinity')
+    handler.playSubjectTrailWithAllInputs(1, 'infinity')
     #handler.savePostDataFromSubjectVideo(1, 'infinity')
-    handler.replaySubjectVideoWithPostData(1, 'zigzag')
+    #handler.replaySubjectVideoWithPostData(1, 'zigzag')
 
 def testVideoMerger():
     #VideoMerger().mergeAllSubjectVideos('1')

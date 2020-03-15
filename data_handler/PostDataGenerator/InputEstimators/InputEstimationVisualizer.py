@@ -54,12 +54,12 @@ class InputEstimationVisualizer(object):
         frame = self.addAllInputs(frame, pPoints, landmarks, outputValues)
         return self.showFrame(frame, delay)
 
-    def playSubjectVideoWithAllInputs(self, estimator, streamer):
+    def PostDataGenerator(self, estimator, streamer):
         for frame in streamer:
             annotations = estimator.estimateInputValuesWithAnnotations(frame)
             #annotations = self._mappingFunc.calculateOutputValuesWithAnnotations(subjFrame)
             inputValues, pPoints, landmarks = annotations
-            k = self.__visualizer.showFrameWithAllInputs(frame, pPoints, landmarks)
+            k = self.showFrameWithAllInputs(frame, pPoints, landmarks)
             if not k:
                 break
         return
