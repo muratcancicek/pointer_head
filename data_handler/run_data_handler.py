@@ -4,10 +4,11 @@ from VideoMerger import VideoMerger
 def testDataHandler():
     handler = DataHandler(readAllDataNow = False) 
     #subjectTrail = handler.saveAllPostDataForSubject(2)
-    handler.playSubjectTrailWithHeadGaze(1, 'infinity')
+    handler.playSubjectTrailWithHeadGaze(2, 'zigzag')
+    #handler.playSubjectTrailWithAllInputs(1, 'infinity')
     #handler.savePostDataFromSubjectVideo(1, 'infinity')
     #handler.replaySubjectVideoWithPostData(1, 'zigzag')
-
+    
 def testVideoMerger():
     #VideoMerger().mergeAllSubjectVideos('1')
     handler = DataHandler(readAllDataNow = False) 
@@ -18,6 +19,7 @@ def testVideoMerger():
 def main():
    testDataHandler()
     # testVideoMerger()
+   #testFace()
 
 if __name__ == '__main__':
     main()

@@ -17,6 +17,8 @@ class InputEstimationVisualizer(object):
     
     def addLandmarks(self, frame, landmarks):
         for i, (x, y) in enumerate(landmarks):
+            if not i in [0, 8, 16, 19, 24]:
+                continue
             cv2.circle(frame, (x, y), 6, (255, 255, 255), -1, cv2.LINE_AA)
         return frame
      
@@ -70,6 +72,8 @@ class InputEstimationVisualizer(object):
         for frame in streamer:
             annotations = mappingFunc.calculateOutputValuesWithAnnotations(frame)
             outputValues, inputValues, pPoints, landmarks = annotations
+            pp = mappingFunc.getEstimator().poseCalculator.calculate3DScreen()
+            frame = self.addBox(frame, pp.astype(int))
             k = self.showFrameWithAllInputs(frame, pPoints, landmarks, inputValues)
             if not k:
                 break

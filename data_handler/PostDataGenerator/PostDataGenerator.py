@@ -1,5 +1,6 @@
 from PostDataGenerator.InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
 from PostDataGenerator.InputEstimators.InputEstimationVisualizer import InputEstimationVisualizer
+from PostDataGenerator.InputEstimators.Scene3DVisualizer import Scene3DVisualizer
 from PostDataGenerator.InputEstimators.PoseEstimators import PoseEstimator, HeadGazer
 #from PostDataGenerator.InputEstimators.LandmarkDetectors import LandmarkDetector
 #from PostDataGenerator.InputEstimators.FaceDetectors import CVFaceDetector
@@ -13,7 +14,7 @@ class PostDataGenerator(object):
     def __init__(self):
         super()
         self.__estimator = HeadGazer() # PoseEstimator() # LandmarkDetector() # CVFaceDetector()
-        self.__visualizer = InputEstimationVisualizer()
+        self.__visualizer = Scene3DVisualizer() # InputEstimationVisualizer() # 
 
     def openVideo(self, path):
         cap = cv2.VideoCapture(path)
