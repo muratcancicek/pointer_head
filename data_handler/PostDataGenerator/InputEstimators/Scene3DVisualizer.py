@@ -5,6 +5,7 @@ from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 import cv2
+import io
 
 class Scene3DVisualizer(InputEstimationVisualizer):
     
@@ -21,28 +22,48 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         model_points[:, -1] *= -1
         print(model_points)
         return model_points
+    
+    # define a function which returns an image as numpy array from figure, pad_inches=0'tight', bbox_inches=bbox
+    def get_img_from_fig(self, fig, dpi=125.88):
+        buf = io.BytesIO()
+        #bbox = fig.bbox_inches.from_bounds(2.3, 1.3, 7.7, 4.3)
+        fig.savefig(buf, format="png", dpi=dpi)
+        buf.seek(0)
+        img_arr = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+        buf.close()
+        img = cv2.imdecode(img_arr, 1)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        return img
 
-    def plot3DPoints(self, points = None):
+    def plot3DPoints(self, points = None, dpi=125.88):
         if points is None:
             points = self.get_full_model_points(CV2Res10SSD_frozen_face_model_path)
-        fig = pyplot.figure()
+        s = 1
+        fig = pyplot.figure(num=None, figsize=(s * 17.6, s * 14), dpi=dpi)
         ax = Axes3D(fig)
+        ax.view_init(elev=-90, azim=90) 
+        #pyplot.show()
+        #buf = self.fig2data(fig)
         ax.scatter(points[:, 0], points[:, 1], points[:, 2])
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
+        ax.set_xlim(-220, 220)
+        ax.set_ylim(-50, 300)
+        ax.set_zlim(-50, 800)
         ax.plot(points[-10:, 0], points[-10:, 1], points[-10:, 2])
         ax.plot(points[:10, 0], points[:10, 1], points[:10, 2])
         ax.invert_yaxis()
-        ax.view_init(elev=130, azim=-90) 
-        pyplot.show()
+        buf = self.get_img_from_fig(fig, dpi=dpi)
+        pyplot.close()
+        return buf
 
     def playSubjectVideoWithHeadGaze(self, mappingFunc, streamer):
         i = -1
         for frame in streamer:
-            i += 1 
-            if i % 30 != 0:
-                continue
+            #i += 1 
+            #if i % 30 != 0:
+            #    continue
 
             annotations = mappingFunc.calculateOutputValuesWithAnnotations(frame)
             outputValues, inputValues, pPoints, landmarks = annotations
@@ -50,12 +71,18 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             screen = mappingFunc.getEstimator().poseCalculator.get3DScreen()
             nose = mappingFunc.getEstimator().poseCalculator.get3DNose()
             all3DPoints = np.concatenate((screen, landmarks3d, nose))
-            self.plot3DPoints(all3DPoints)
-            print(nose)
+            f = self.plot3DPoints(all3DPoints)
+            h, w, _ = f.shape
+            xb, yb = int(w/5), int(h/5)
+            s = 1.5
+            xe, ye = xb + 3*xb, yb + 3*yb
+            f = f[yb:ye, xb:xe]
+            print(f.shape)
+            k = self.showFrame(frame)
             #frame = self.addBox(frame, pp.astype(int))
             #k = self.showFrameWithAllInputs(frame, pPoints, landmarks, inputValues)
-            #if not k:
-            #    break
+            if not k:
+                break
             #break
         return
     

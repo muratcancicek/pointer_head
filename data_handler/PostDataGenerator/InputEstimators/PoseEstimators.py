@@ -390,24 +390,29 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         output = self._projectionPoints[-1, :]# - np.array([0, 1080/215*55+540])
         
         return output, self._projectionPoints
-    
-    def get3DNose(self):
+
+    def translateTo3D(self, points):
         rotation_mat, _ = cv2.Rodrigues(self._rotation_vector)
         t_vec = self._translation_vector[:]
         #t_vec[1] *= -1
         project_mat = cv2.hconcat((rotation_mat, t_vec))
         project_mat = np.concatenate((project_mat, np.zeros((1, 4))), 0)
         project_mat[-1, -1] = 1
-        nose =  self._get_3d_points(rear_size = 10, rear_depth = 55, 
-                                    front_size = 10, front_depth = self._front_depth)
-        nose[:, -1] *= -1
-        face3d = np.concatenate((nose, np.ones((nose.shape[0], 1))), 1)
-        landmarks3d = np.matmul(project_mat, face3d.T).T[:, :-1]
-        return landmarks3d
+        points[:, -1] *= -1
+        points_ = np.concatenate((points, np.ones((points.shape[0], 1))), 1)
+        points3d = np.matmul(project_mat, points_.T).T[:, :-1]
+        #print('\r%s %s %s' % (str(project_mat.shape), str(points_.shape), str(points3d.shape)), end = '\r')
+        #cv2.undistortPoints(self._landmarks, self._camera_matrix, self._dist_coeffs)
+        return points3d
+    
+    def get3DNose(self):
+        nose =  self._get_3d_points(rear_size = 0, rear_depth = 55, 
+                                    front_size = 0, front_depth = self._front_depth)
+        return self.translateTo3D(nose)
 
     def get3DScreen(self):
         t_vec = np.array([[0], [162], [0.0]])
-        return t_vec.T + self._get_points(192, 107, 30, 192, 107, 0)
+        return t_vec.T + self._get_points(192, 107, 0, 192, 107, 0)
 
     def calculate3DScreen(self):
         translation_vector = np.array([[0], [0], [0.0]])
@@ -420,19 +425,8 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         return projectionPoints
 
     def calculate3DLandmarks(self):
-        rotation_mat, _ = cv2.Rodrigues(self._rotation_vector)
-        t_vec = self._translation_vector[:]
-        t_vec[1] *= -1
-        project_mat = cv2.hconcat((rotation_mat, t_vec))
-        project_mat = np.concatenate((project_mat, np.zeros((1, 4))), 0)
-        project_mat[-1, -1] = 1
         face = self._faceModelPoints.copy()
-        face[:, -1] *= -1
-        face3d = np.concatenate((face, np.ones((68, 1))), 1)
-        landmarks3d = np.matmul(project_mat, face3d.T).T[:, :-1]
-        #print('\r%s %s %s' % (str(project_mat.shape), str(face3d.shape), str(landmarks3d.shape)), end = '\r')
-        #cv2.undistortPoints(self._landmarks, self._camera_matrix, self._dist_coeffs)
-        return landmarks3d
+        return self.translateTo3D(face)
 
 class HeadGazer(PoseEstimator):
     def __init__(self, faceDetector = None, landmarkDetector = None, poseCalculator = None, face_landmark_path = None, inputFramesize = (1920, 1080), *args, **kwargs):
