@@ -61,10 +61,6 @@ class Scene3DVisualizer(InputEstimationVisualizer):
     def playSubjectVideoWithHeadGaze(self, mappingFunc, streamer):
         i = -1
         for frame in streamer:
-            #i += 1 
-            #if i % 30 != 0:
-            #    continue
-
             annotations = mappingFunc.calculateOutputValuesWithAnnotations(frame)
             outputValues, inputValues, pPoints, landmarks = annotations
             landmarks3d = mappingFunc.getEstimator().poseCalculator.calculate3DLandmarks()
@@ -78,7 +74,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             xe, ye = xb + 3*xb, yb + 3*yb
             f = f[yb:ye, xb:xe]
             print(f.shape)
-            k = self.showFrame(frame)
+            k = self.showFrame(f)
             #frame = self.addBox(frame, pp.astype(int))
             #k = self.showFrameWithAllInputs(frame, pPoints, landmarks, inputValues)
             if not k:
