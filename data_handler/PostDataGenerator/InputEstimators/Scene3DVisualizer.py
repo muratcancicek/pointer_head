@@ -27,7 +27,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
     def get_img_from_fig(self, fig, dpi=125.88):
         buf = io.BytesIO()
         #bbox = fig.bbox_inches.from_bounds(2.3, 1.3, 7.7, 4.3)
-        fig.savefig(buf, format="png", dpi=dpi)
+        pyplot.savefig(buf, format="png", dpi=dpi)
         buf.seek(0)
         img_arr = np.frombuffer(buf.getvalue(), dtype=np.uint8)
         buf.close()
@@ -39,6 +39,9 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         if points is None:
             points = self.get_full_model_points(CV2Res10SSD_frozen_face_model_path)
         s = 1
+
+        pyplot.style.use('dark_background')
+
         fig = pyplot.figure(num=None, figsize=(s * 17.6, s * 14), dpi=dpi)
         ax = Axes3D(fig)
         ax.view_init(elev=-90, azim=90) 
@@ -51,6 +54,14 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         ax.set_xlim(-220, 220)
         ax.set_ylim(-50, 300)
         ax.set_zlim(-50, 800)
+        #ax.w_xaxis.pane.fill = False
+        #ax.w_yaxis.pane.fill = False
+        #ax.w_zaxis.pane.fill = False
+        ax.w_xaxis.set_pane_color ((0., 0., 0., 0.))
+        ax.w_yaxis.set_pane_color ((0., 0., 0., 0.))
+        ax.w_zaxis.set_pane_color ((0., 0., 0., 0.))
+        ax.grid(False)
+
         ax.plot(points[-10:, 0], points[-10:, 1], points[-10:, 2])
         ax.plot(points[:10, 0], points[:10, 1], points[:10, 2])
         ax.invert_yaxis()
@@ -74,7 +85,11 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             xe, ye = xb + 3*xb, yb + 3*yb
             f = f[yb:ye, xb:xe]
             print(f.shape)
-            k = self.showFrame(f)
+            scene = np.zeros_like(frame)
+            scene[:f.shape[0], :f.shape[1]] = f
+            merged = cv2.addWeighted(scene, 1, frame, 1, 0)
+            k = self.showFrame(merged)
+            #k = self.showFrame(f)
             #frame = self.addBox(frame, pp.astype(int))
             #k = self.showFrameWithAllInputs(frame, pPoints, landmarks, inputValues)
             if not k:
