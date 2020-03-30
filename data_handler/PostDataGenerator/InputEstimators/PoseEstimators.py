@@ -411,9 +411,14 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         return points3d
     
     def get3DNose(self):
-        nose =  self._get_3d_points(rear_size = 0, rear_depth = 55, 
-                                    front_size = 0, front_depth = self._front_depth)
-        return self.translateTo3D(nose)
+        nose =  self._get_3d_points(rear_size = 0, 
+                                    rear_depth = 55, front_size = 0, 
+                                    front_depth = self._front_depth)
+        nose = self.translateTo3D(nose)
+        p1, p2 = nose[0], nose[-1]; dist = p1 - p2
+        norm = np.linalg.norm(dist); unit = dist/norm
+        nose[-int(nose.shape[0]/2):] = p2 - (p2[-1]/unit[-1]) * unit
+        return nose
 
     def get3DScreen(self):
         t_vec = np.array([[0], [162], [0.0]])
@@ -437,7 +442,7 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         landmarks3d = self.calculate3DLandmarks()
         screen = self.get3DScreen()
         nose = self.get3DNose()
-        all3DPoints = np.concatenate((screen, landmarks3d, np.array([[200, 300, 0]]), nose))
+        all3DPoints = np.concatenate((screen, landmarks3d, nose))
         return all3DPoints
 
     def calculate3DProjection(self, points):

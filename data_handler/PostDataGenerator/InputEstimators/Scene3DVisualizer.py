@@ -23,7 +23,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         print(model_points)
         return model_points
     
-    # define a function which returns an image as numpy array from figure, pad_inches=0'tight', bbox_inches=bbox
+    # define a function which returns an image as numpy array from figure,
+    #  pad_inches=0'tight', bbox_inches=bbox
     def get_img_from_fig(self, fig, dpi=125.88):
         buf = io.BytesIO()
         pyplot.savefig(buf, format="png", dpi=dpi)
@@ -43,9 +44,6 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         ax.set_xlim(-220*s, 220*s)
         ax.set_ylim(-50*s, 300*s)
         ax.set_zlim(-50*s, 800*s)
-        #ax.w_xaxis.pane.fill = False
-        #ax.w_yaxis.pane.fill = False
-        #ax.w_zaxis.pane.fill = False
         ax.w_xaxis.set_pane_color((0., 0., 0., 0.))
         ax.w_yaxis.set_pane_color((0., 0., 0., 0.))
         ax.w_zaxis.set_pane_color((0., 0., 0., 0.))
@@ -72,7 +70,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         x = (x - x.shape[0]/2).astype(int)
         y = (y + 55).astype(int)
         z = 0*np.ones(x.shape)
-        ax.plot_surface(x, y, z, rstride=1, cstride=1, facecolors=img, alpha=.5, linewidth=0, zorder=-1)
+        ax.plot_surface(x, y, z, rstride=1, cstride=1,
+                        facecolors=img, alpha=.5, linewidth=0, zorder=-1)
         return ax
 
     def plot3DPoints(self, points = None, dpi=125.88, img = None, plot = False):
@@ -103,7 +102,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             return buf
 
     def getLargeFrame(self, frame, s = 2, xb = None, yb = None):
-        largeFrame = np.zeros((s * frame.shape[0], s * frame.shape[1], frame.shape[2]), np.uint8)
+        largeFrame = np.zeros((s * frame.shape[0], s * frame.shape[1], 
+                               frame.shape[2]), np.uint8)
         h, w, _ = largeFrame.shape
         if xb is None: xb = int(h/4)+167
         if yb is None: yb = 167
@@ -128,7 +128,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         scene = self.plot3DPoints(all3DPoints)
         return self.showFrame(scene)
     
-    def findFace(self, frame, scene, landmarksProj):
+    def find3DFaceInScene(self, frame, scene, landmarksProj):
         scene = (scene > 0).astype(np.uint8)*255
         points = np.where(np.all(scene == (0, 255, 0), axis=-1))
         points = np.array([[x, y] for y, x in set(zip(points[0], points[1]))])
@@ -136,18 +136,35 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         bottom_right = (points[:, 0].max(), points[:, 1].max())
         return top_left, bottom_right
     
-    def addFace(self, frame, scene, landmarksProj):
+    def addFaceToSceneFrame(self, frame, scene, landmarksProj):
         offset = 20
         xb, yb = landmarksProj[:, 0].min(), landmarksProj[:, 1].min()
         xe, ye = landmarksProj[:, 0].max(), landmarksProj[:, 1].max()
         temp = frame[yb-offset:ye+offset, xb-offset:xe+offset]
-        top_left, bottom_right = self.findFace(frame, scene, landmarksProj)
+        top_left, bottom_right =\
+           self.find3DFaceInScene(frame, scene, landmarksProj)
         #scene = cv2.rectangle(scene, top_left, bottom_right, (0,0,255), 4)
         w, h = bottom_right[0] - top_left[0], bottom_right[1] - top_left[1]
         offsetX_scaled = int(offset*w/temp.shape[1])
         offsetY_scaled = int(offset*h/temp.shape[0])
         w_scaled, h_scaled = w + 2*offsetX_scaled, h +  2*offsetY_scaled
         temp = cv2.resize(temp, (w_scaled,h_scaled))
+        bg = np.zeros_like(scene)
+        xb2, yb2 = top_left[0] - offsetX_scaled, top_left[1] - offsetY_scaled
+        xb2, yb2 = max(xb2, 0), max(yb2, 0)
+        bg[yb2:yb2+temp.shape[0], xb2:xb2+temp.shape[1]] = temp
+        scene = cv2.addWeighted(bg, 1, scene, 1, 0)
+        return scene
+    
+    def find3DScreenInScene(self, scene, trailFrame):
+        return (0, 0) (trailFrame.shape[1], trailFrame.shape[0])
+
+    def addTrailSceneFrame(self, scene, trailFrame):
+        top_left, bottom_right =\
+           self.find3DScreenInScene(trailFrame, scene, landmarksProj)
+        #scene = cv2.rectangle(scene, top_left, bottom_right, (0,0,255), 4)
+        w, h = bottom_right[0] - top_left[0], bottom_right[1] - top_left[1]
+        temp = cv2.resize(temp, (w, h))
         bg = np.zeros_like(scene)
         xb2, yb2 = top_left[0] - offsetX_scaled, top_left[1] - offsetY_scaled
         xb2, yb2 = max(xb2, 0), max(yb2, 0)
@@ -160,7 +177,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         scene = self.plot3DPoints(all3DPoints)
         screenProj, landmarksProj, noseProj =\
            mappingFunc.getEstimator().poseCalculator.calculateall3DProjections()
-        scene = self.addFace(frame, scene, landmarksProj)
+        scene = self.addFaceToSceneFrame(frame, scene, landmarksProj)
         return self.showFrame(scene)
     
     def showMergedLargeFrame(self, frame, all3DPoints, landmarks3d, landmarks):
