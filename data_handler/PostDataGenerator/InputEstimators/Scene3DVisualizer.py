@@ -78,17 +78,18 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         if points is None:
             points = self.get_full_model_points(CV2Res10SSD_frozen_face_model_path)
         pyplot.style.use('dark_background')
-        s = 1
+        s = 0.25
         fig = pyplot.figure(num=None, figsize=(s * 17.6, s * 14), dpi=dpi)
         ax = Axes3D(fig)
         ax = self.configAx(ax)
         if not img is None:
             ax = self.addPlane(ax, img)
         ax.scatter(points[:10, 0], points[:10, 1], points[:10, 2])
-        ax.scatter(points[10:-11, 0], points[10:-11, 1], points[10:-11, 2], c = 'green')
+        ax.scatter(points[10:-11, 0], points[10:-11, 1],
+                   points[10:-11, 2], c = 'green')
         #ax.scatter(points[44:45, 0], points[44:45, 1], points[44:45, 2], c = 'red')
         ax.scatter(points[-11:, 0], points[-11:, 1], points[-11:, 2])
-        ax.plot(points[:10, 0], points[:10, 1], points[:10, 2])
+        ax.plot(points[:10, 0], points[:10, 1], points[:10, 2], c = 'red')
         ax.plot(points[-10:, 0], points[-10:, 1], points[-10:, 2])
         if plot:
             pyplot.show()
@@ -141,7 +142,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         xb, yb = landmarksProj[:, 0].min(), landmarksProj[:, 1].min()
         xe, ye = landmarksProj[:, 0].max(), landmarksProj[:, 1].max()
         temp = frame[yb-offset:ye+offset, xb-offset:xe+offset]
-        top_left, bottom_right =\
+        top_left, bottom_right = \
            self.find3DFaceInScene(frame, scene, landmarksProj)
         #scene = cv2.rectangle(scene, top_left, bottom_right, (0,0,255), 4)
         w, h = bottom_right[0] - top_left[0], bottom_right[1] - top_left[1]
@@ -157,27 +158,36 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         return scene
     
     def find3DScreenInScene(self, scene, trailFrame):
-        return (0, 0) (trailFrame.shape[1], trailFrame.shape[0])
+        scene = (scene > 0).astype(np.uint8)*255
+        points = np.where(np.all(scene == (0, 0, 255), axis=-1))
+        points = np.array([[x, y] for y, x in set(zip(points[0], points[1]))])
+        top_left = (points[:, 0].min(), points[:, 1].min())
+        bottom_right = (points[:, 0].max(), points[:, 1].max())
+        return top_left, bottom_right
+        #return (0, 0), (int(trailFrame.shape[1]/4), int(trailFrame.shape[0]/4))
 
-    def addTrailSceneFrame(self, scene, trailFrame):
-        top_left, bottom_right =\
-           self.find3DScreenInScene(trailFrame, scene, landmarksProj)
+    def addTrailToSceneFrame(self, scene0, scene, trailFrame):
+        top_left, bottom_right = self.find3DScreenInScene(scene0, trailFrame)
         #scene = cv2.rectangle(scene, top_left, bottom_right, (0,0,255), 4)
         w, h = bottom_right[0] - top_left[0], bottom_right[1] - top_left[1]
-        temp = cv2.resize(temp, (w, h))
+        trailFrame = cv2.resize(trailFrame, (w, h))
         bg = np.zeros_like(scene)
-        xb2, yb2 = top_left[0] - offsetX_scaled, top_left[1] - offsetY_scaled
+        xb2, yb2 = top_left[0], top_left[1]
         xb2, yb2 = max(xb2, 0), max(yb2, 0)
-        bg[yb2:yb2+temp.shape[0], 
-           xb2:xb2+temp.shape[1]] = temp
-        scene = cv2.addWeighted(bg, 1, scene, 1, 0)
+        bg[yb2:yb2+trailFrame.shape[0], 
+           xb2:xb2+trailFrame.shape[1]] = trailFrame
+        scene = cv2.addWeighted(scene, 1, bg, 1, 0)
         return scene
 
-    def showSceneFrameWithFace(self, frame, all3DPoints, mappingFunc, landmarks):
-        scene = self.plot3DPoints(all3DPoints)
-        screenProj, landmarksProj, noseProj =\
+    def showSceneFrameWithFace(self, frame, all3DPoints, 
+                               mappingFunc, trailStreamer = None):
+        screenProj, landmarksProj, noseProj = \
            mappingFunc.getEstimator().poseCalculator.calculateall3DProjections()
-        scene = self.addFaceToSceneFrame(frame, scene, landmarksProj)
+        scene0 = self.plot3DPoints(all3DPoints)
+        scene = self.addFaceToSceneFrame(frame, scene0, landmarksProj)
+        if not trailStreamer is None:
+            trailFrame = next(trailStreamer)
+            scene = self.addTrailToSceneFrame(scene0, scene, trailFrame)
         return self.showFrame(scene)
     
     def showMergedLargeFrame(self, frame, all3DPoints, landmarks3d, landmarks):
@@ -192,28 +202,31 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         print(scene.shape)#, img = frame* ( 125.88 )25.4, 
 
         frame = self.addLandmarks(frame, landmarks.astype(int))
-        frame = cv2.circle(frame, (int(frame.shape[1]/2), int(frame.shape[0]/2)), 15, (255, 55, 255), -1)
+        frame = cv2.circle(frame, (int(frame.shape[1]/2),int(frame.shape[0]/2)),
+                           15, (255, 55, 255), -1)
         h, w, _ = frame.shape
         xb, yb = int(w/8), int(h/4)
         xe, ye = 5*xb, yb + 2*yb
         frame = frame[yb:ye, 3*xb:xe]
-        frame = cv2.resize(frame, (int(r*frame.shape[1]), int(r*frame.shape[0])))
+        frame = cv2.resize(frame, (int(r*frame.shape[1]),int(r*frame.shape[0])))
         merged = self.getMergedLargeFrame(scene, frame, s = 2)
-        merged = cv2.resize(merged, (int(merged.shape[1]/2), int(merged.shape[0]/2)))
+        merged = cv2.resize(merged, (int(merged.shape[1]/2),
+                                    int(merged.shape[0]/2)))
         return self.showFrame(merged)
     
     def showSceneWithTrail(self, all3DPoints, trailStreamer):
         if not trailStreamer is None:
-            trailFrame = next(trailStreamer)
-            scene = self.plot3DPoints(all3DPoints, img = trailFrame) # , plot = True
+            trailFrame = next(trailStreamer) # , plot = True
+            scene = self.plot3DPoints(all3DPoints, img = trailFrame)
             return self.showFrame(scene)
         
     def getPerspectiveTransformFrame(self, frame, landmarks, landmarksProj):
-        warp_mat = cv2.getAffineTransform(landmarks[:3].astype(np.float32), landmarksProj[:3].astype(np.float32))
+        warp_mat = cv2.getAffineTransform(landmarks[:3].astype(np.float32), 
+                                          landmarksProj[:3].astype(np.float32))
         return cv2.warpAffine(frame, warp_mat, (frame.shape[1], frame.shape[0]))
         
     def showProjectedFrame(self, frame, mappingFunc, landmarks):
-        screenProj, landmarksProj, noseProj =\
+        screenProj, landmarksProj, noseProj = \
            mappingFunc.getEstimator().poseCalculator.calculateall3DProjections()
         frame = self.addLandmarks(frame, landmarks.astype(int))
         frame = self.addLandmarks(frame, landmarksProj.astype(int), (0, 0, 255))
@@ -222,8 +235,10 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         xe, ye = 5*xb, yb + 2*yb
         frame2 = frame[yb:ye, 3*xb:xe]
         frame = np.zeros_like(frame)
-        frame[yb:ye, 3*xb:xe] = frame2 #elf.getPerspectiveTransformFrame(frame2, landmarks, landmarksProj)
-        frame = self.getPerspectiveTransformFrame(frame, landmarks, landmarksProj)
+        frame[yb:ye, 3*xb:xe] = frame2 
+        #elf.getPerspectiveTransformFrame(frame2, landmarks, landmarksProj)
+        frame = self.getPerspectiveTransformFrame(frame, landmarks, 
+                                                  landmarksProj)
         #return self.showFrame(frame)
         xb, yb = int((frame.shape[1])/2), 0 #int(h/5)
         #print(screenProj)
@@ -233,17 +248,23 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         ##frame = self.addBox(frame, noseProj.astype(int))
         return self.showFrame(largeFrame)
             
-    def playSubjectVideoWithHeadGaze(self, mappingFunc, streamer, trailStreamer = None):
+    def playSubjectVideoWithHeadGaze(self, mappingFunc, 
+                                     streamer, trailStreamer = None):
         for frame in streamer:
-            annotations = mappingFunc.calculateOutputValuesWithAnnotations(frame)
+            frame = cv2.flip(frame, 1)
+            annotations=mappingFunc.calculateOutputValuesWithAnnotations(frame)
             outputValues, inputValues, pPoints, landmarks = annotations
-            all3DPoints = mappingFunc.getEstimator().poseCalculator.calculateAll3DPoints()
+            all3DPoints = \
+                mappingFunc.getEstimator().poseCalculator.calculateAll3DPoints()
             #k = self.showScene(all3DPoints)
             #k = self.showSceneFrame(all3DPoints)
-            k = self.showSceneFrameWithFace(frame, all3DPoints, mappingFunc, landmarks)
+            #k = self.showSceneFrameWithFace(frame, all3DPoints, mappingFunc)
+            k = self.showSceneFrameWithFace(frame, all3DPoints,
+                                            mappingFunc, trailStreamer)
             #k = self.showSceneWithTrail(all3DPoints, trailStreamer)
             #k = self.showProjectedFrame(frame, mappingFunc, landmarks)
-            #k = self.showMergedLargeFrame(frame, all3DPoints, landmarks3d, landmarks)
+            #k = self.showMergedLargeFrame(frame, all3DPoints,
+            #                             landmarks3d, landmarks)
             if not k:
                 break
             #break
