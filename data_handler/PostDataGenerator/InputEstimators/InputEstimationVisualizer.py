@@ -15,11 +15,11 @@ class InputEstimationVisualizer(object):
                 cv2.line(frame, start, end, color, 2, cv2.LINE_AA)
         return frame
     
-    def addLandmarks(self, frame, landmarks):
+    def addLandmarks(self, frame, landmarks, c = (255, 0, 0)):
         for i, (x, y) in enumerate(landmarks):
-            if not i in [0, 8, 16, 19, 24]:
-                continue
-            cv2.circle(frame, (x, y), 6, (255, 255, 255), -1, cv2.LINE_AA)
+            #if not i in [39, 42]:
+            #    continue
+            cv2.circle(frame, (x, y), 6, c, -1, cv2.LINE_AA)
         return frame
      
     def addPointer(self, frame, outputValues):

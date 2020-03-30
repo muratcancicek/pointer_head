@@ -65,6 +65,19 @@ class PostDataGenerator(object):
         streamer = self.openVideo(subjectVideoPath)
         self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer)
         return
+    
+    def merge3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
+        subjectVideoName = subjectVideoPath.split(Paths.sep)[-1].split('_')
+        trail = '_'.join(subjectVideoName[:subjectVideoName.index(id)])
+        trailVideoPath = Paths.TrailVideosFolder + trail + '.avi'
+        outputSize = (1920, 1080)
+        boundary = Boundary(0, outputSize[0], 0, outputSize[1])
+        #self._mappingFunc = DynamicMapping(self.__estimator, boundary)
+        mappingFunc = StaticMapping(self.__estimator, boundary)
+        streamer = self.openVideo(subjectVideoPath)
+        trailStreamer = self.openVideo(trailVideoPath)
+        self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer, trailStreamer)
+
 
     def getPostDataFromSubjectVideo(self, subjectVideoPath, frameCount, tName = ''):
         if tName != '': tName = ' for ' + tName

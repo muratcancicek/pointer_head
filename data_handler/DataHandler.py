@@ -118,10 +118,15 @@ class DataHandler(object):
     def playSubjectTrailWithAllInputs(self, id, tName):
         gen, path = self.__playSubjectTrailWith(id, tName)
         gen.playSubjectVideoWithAllInputs(path)
-
+        
     def playSubjectTrailWithHeadGaze(self, id, tName):
         gen, path = self.__playSubjectTrailWith(id, tName)
         gen.playSubjectVideoWithHeadGaze(path)
+
+    def merge3DSubjectTrailWithHeadGaze(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        gen, path = self.__playSubjectTrailWith(id, tName)
+        gen.merge3DSubjectTrailWithHeadGaze(path, id)
 
     def generatePostDataFromSubjectVideo(self, id, tName):
         if isinstance(id, int): id = str(id)
