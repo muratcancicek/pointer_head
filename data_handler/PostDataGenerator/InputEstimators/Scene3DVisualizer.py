@@ -4,10 +4,27 @@ from Paths import CV2Res10SSD_frozen_face_model_path
 from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
+from datetime import datetime
 import cv2
 import io
 
 class Scene3DVisualizer(InputEstimationVisualizer):
+
+    def hex_to_rgb(self, value):
+        value = value.lstrip('#')
+        lv = len(value)
+        return tuple(int(value[i:i + lv // 3], 16)
+                     for i in range(0, lv, lv // 3))
+
+    def __init__(self, sceneScale = 1,
+                landmarkColorStr = '#00ff00', screenColorStr = '#0000ff'):
+        super()
+        self._size = (1920, 1080)
+        self._sceneScale = sceneScale
+        self._landmarkColorStr = landmarkColorStr # (0, 255, 0)
+        self._landmarkColor = tuple(reversed(self.hex_to_rgb(self._landmarkColorStr)))
+        self._screenColorStr = screenColorStr # (0, 0, 255)
+        self._screenColor = tuple(reversed(self.hex_to_rgb(self._screenColorStr)))
     
     def get_full_model_points(self, filename):
         """Get all 68 3D model points from file"""
@@ -20,7 +37,6 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         # model_points *= 4
         model_points[:, 1] *= -1
         model_points[:, -1] *= -1
-        print(model_points)
         return model_points
     
     # define a function which returns an image as numpy array from figure,
@@ -40,7 +56,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         ax.set_xlabel('x')
         ax.set_ylabel('y')
         ax.set_zlabel('z')
-        s = 1
+        s = self._sceneScale
         ax.set_xlim(-220*s, 220*s)
         ax.set_ylim(-50*s, 300*s)
         ax.set_zlim(-50*s, 800*s)
@@ -76,7 +92,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
 
     def plot3DPoints(self, points = None, dpi=125.88, img = None, plot = False):
         if points is None:
-            points = self.get_full_model_points(CV2Res10SSD_frozen_face_model_path)
+            points = \
+                self.get_full_model_points(CV2Res10SSD_frozen_face_model_path)
         pyplot.style.use('dark_background')
         s = 1
         fig = pyplot.figure(num=None, figsize=(s * 17.6, s * 14), dpi=dpi)
@@ -86,10 +103,10 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             ax = self.addPlane(ax, img)
         ax.scatter(points[:10, 0], points[:10, 1], points[:10, 2])
         ax.scatter(points[10:-11, 0], points[10:-11, 1],
-                   points[10:-11, 2], c = 'green')
-        #ax.scatter(points[44:45, 0], points[44:45, 1], points[44:45, 2], c = 'red')
+                   points[10:-11, 2], c = self._landmarkColorStr)
         ax.scatter(points[-11:, 0], points[-11:, 1], points[-11:, 2])
-        ax.plot(points[:10, 0], points[:10, 1], points[:10, 2], c = 'red')
+        ax.plot(points[:10, 0], points[:10, 1], 
+                points[:10, 2], c = self._screenColorStr)
         ax.plot(points[-10:, 0], points[-10:, 1], points[-10:, 2])
         if plot:
             pyplot.show()
@@ -128,10 +145,10 @@ class Scene3DVisualizer(InputEstimationVisualizer):
     def showSceneFrame(self, all3DPoints):
         scene = self.plot3DPoints(all3DPoints)
         return self.showFrame(scene)
-    
+
     def find3DFaceInScene(self, frame, scene, landmarksProj):
         scene = (scene > 0).astype(np.uint8)*255
-        points = np.where(np.all(scene == (0, 255, 0), axis=-1))
+        points = np.where(np.all(scene == self._landmarkColor, axis=-1))
         points = np.array([[x, y] for y, x in set(zip(points[0], points[1]))])
         top_left = (points[:, 0].min(), points[:, 1].min())
         bottom_right = (points[:, 0].max(), points[:, 1].max())
@@ -159,7 +176,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
     
     def find3DScreenInScene(self, scene, trailFrame):
         scene = (scene > 0).astype(np.uint8)*255
-        points = np.where(np.all(scene == (0, 0, 255), axis=-1))
+        points = np.where(np.all(scene == self._screenColor, axis=-1))
         points = np.array([[x, y] for y, x in set(zip(points[0], points[1]))])
         top_left = (points[:, 0].min(), points[:, 1].min())
         bottom_right = (points[:, 0].max(), points[:, 1].max())
@@ -179,6 +196,14 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         scene = cv2.addWeighted(scene, 1, bg, 1, 0)
         return scene
 
+    def addPointingValueToSceneFrame(self, scene, all3DPoints):
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        v = 5*(all3DPoints[-1]-all3DPoints[0])
+        s = '%d px, %d px' % tuple([int(i) for i in v[:2]])
+        p = (int(scene.shape[1]/2)-120,int(scene.shape[0]/2))
+        scene = cv2.putText(scene, s, p, font, 1, (255,255,255), 1, cv2.LINE_AA)
+        return scene
+    
     def showSceneFrameWithFace(self, frame, all3DPoints, 
                                mappingFunc, trailStreamer = None):
         screenProj, landmarksProj, noseProj = \
@@ -188,7 +213,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         if not trailStreamer is None:
             trailFrame = next(trailStreamer)
             scene = self.addTrailToSceneFrame(scene0, scene, trailFrame)
-        return self.showFrame(scene)
+        self.addPointingValueToSceneFrame(scene, all3DPoints)
+        return scene, self.showFrame(scene)
     
     def showMergedLargeFrame(self, frame, all3DPoints, landmarks3d, landmarks):
         scene = self.plot3DPoints(all3DPoints)
@@ -247,9 +273,17 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         #frame = self.addBox(largeFrame, noseProj.astype(int))
         ##frame = self.addBox(frame, noseProj.astype(int))
         return self.showFrame(largeFrame)
-            
+
+    def initializeRecorder(self, fps = 30):
+        fourcc = cv2.VideoWriter_fourcc(*'MP42')
+        now = str(datetime.now())[:-7].replace(':', '-').replace(' ', '_')
+        recordName = 'C:\\cStorage\\Datasets\\WhiteBallExp\\MergedVideos\\SceneFrameWithFace_%s.avi' % (now)
+        return  cv2.VideoWriter(recordName, fourcc, fps, self._size)
+ 
     def playSubjectVideoWithHeadGaze(self, mappingFunc, 
                                      streamer, trailStreamer = None):
+        recorder = self.initializeRecorder()
+        #self._size = (480, 360)
         for frame in streamer:
             frame = cv2.flip(frame, 1)
             annotations=mappingFunc.calculateOutputValuesWithAnnotations(frame)
@@ -259,14 +293,21 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             #k = self.showScene(all3DPoints)
             #k = self.showSceneFrame(all3DPoints)
             #k = self.showSceneFrameWithFace(frame, all3DPoints, mappingFunc)
-            k = self.showSceneFrameWithFace(frame, all3DPoints,
+            f, k = self.showSceneFrameWithFace(frame, all3DPoints,
                                             mappingFunc, trailStreamer)
             #k = self.showSceneWithTrail(all3DPoints, trailStreamer)
             #k = self.showProjectedFrame(frame, mappingFunc, landmarks)
             #k = self.showMergedLargeFrame(frame, all3DPoints,
             #                             landmarks3d, landmarks)
+            t = np.zeros((self._size[1], self._size[0], 3))
+            xb, yb = int((self._size[0]-f.shape[1])/2), int((self._size[1]-f.shape[0])/2)
+            xe, ye = xb+f.shape[1], yb+f.shape[0]
+            t[yb:ye, xb:xe] = f
+            recorder.write(t.astype(np.uint8))
             if not k:
+                #recorder.close()
                 break
             #break
+        #recorder.close()
         return
     
