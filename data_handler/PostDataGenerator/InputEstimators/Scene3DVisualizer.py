@@ -78,7 +78,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         if points is None:
             points = self.get_full_model_points(CV2Res10SSD_frozen_face_model_path)
         pyplot.style.use('dark_background')
-        s = 0.25
+        s = 1
         fig = pyplot.figure(num=None, figsize=(s * 17.6, s * 14), dpi=dpi)
         ax = Axes3D(fig)
         ax = self.configAx(ax)
