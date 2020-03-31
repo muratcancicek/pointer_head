@@ -1,11 +1,13 @@
 from PostDataGenerator.InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
 from PostDataGenerator.InputEstimators.InputEstimationVisualizer import InputEstimationVisualizer
 from Paths import CV2Res10SSD_frozen_face_model_path
-from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
-import numpy as np
+from matplotlib import pyplot
 from datetime import datetime
+import numpy as np
+import Paths
 import cv2
+import os
 import io
 
 class Scene3DVisualizer(InputEstimationVisualizer):
@@ -274,40 +276,61 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         ##frame = self.addBox(frame, noseProj.astype(int))
         return self.showFrame(largeFrame)
 
-    def initializeRecorder(self, fps = 30):
-        fourcc = cv2.VideoWriter_fourcc(*'MP42')
-        now = str(datetime.now())[:-7].replace(':', '-').replace(' ', '_')
-        recordName = 'C:\\cStorage\\Datasets\\WhiteBallExp\\MergedVideos\\SceneFrameWithFace_%s.avi' % (now)
-        return  cv2.VideoWriter(recordName, fourcc, fps, self._size)
- 
     def playSubjectVideoWithHeadGaze(self, mappingFunc, 
                                      streamer, trailStreamer = None):
-        recorder = self.initializeRecorder()
-        #self._size = (480, 360)
         for frame in streamer:
             frame = cv2.flip(frame, 1)
             annotations=mappingFunc.calculateOutputValuesWithAnnotations(frame)
             outputValues, inputValues, pPoints, landmarks = annotations
             all3DPoints = \
                 mappingFunc.getEstimator().poseCalculator.calculateAll3DPoints()
-            #k = self.showScene(all3DPoints)
+            k = self.showScene(all3DPoints)
             #k = self.showSceneFrame(all3DPoints)
             #k = self.showSceneFrameWithFace(frame, all3DPoints, mappingFunc)
-            f, k = self.showSceneFrameWithFace(frame, all3DPoints,
-                                            mappingFunc, trailStreamer)
+            #f, k = self.showSceneFrameWithFace(frame, all3DPoints,
+                                            #mappingFunc, trailStreamer)
             #k = self.showSceneWithTrail(all3DPoints, trailStreamer)
             #k = self.showProjectedFrame(frame, mappingFunc, landmarks)
             #k = self.showMergedLargeFrame(frame, all3DPoints,
             #                             landmarks3d, landmarks)
-            t = np.zeros((self._size[1], self._size[0], 3))
-            xb, yb = int((self._size[0]-f.shape[1])/2), int((self._size[1]-f.shape[0])/2)
-            xe, ye = xb+f.shape[1], yb+f.shape[0]
-            t[yb:ye, xb:xe] = f
-            recorder.write(t.astype(np.uint8))
             if not k:
-                #recorder.close()
                 break
-            #break
-        #recorder.close()
+        return
+    
+    def initializeRecorder(self, id, trailName, fps = 30, dims = (1920, 1080)):
+        fourcc = cv2.VideoWriter_fourcc(*'MP42')
+        dir = Paths.MergedVideosFolder + ('%s%s' % (id, Paths.sep))
+        if not os.path.isdir(dir):
+            os.makedirs(dir, exist_ok = True)
+        now = str(datetime.now())[:-7].replace(':', '-').replace(' ', '_')
+        recordName = trailName + '_%s_%s_merged3DScene.avi' % (id, now)
+        print(dir + recordName, 'will be written')
+        return  cv2.VideoWriter(dir + recordName, fourcc, fps, dims)
+ 
+ 
+    def _write(self, recorder, frame):
+        background = np.zeros((self._size[1], self._size[0], 3))
+        xb = int((self._size[0]-frame.shape[1])/2)
+        yb = int((self._size[1]-frame.shape[0])/2)
+        xe, ye = xb+frame.shape[1], yb+frame.shape[0]
+        background[yb:ye, xb:xe] = frame
+        recorder.write(background.astype(np.uint8))
+
+    def recordSubjectSceneVideoWithHeadGaze(self, mappingFunc, id, trailName, 
+                                     streamer, trailStreamer = None):
+        recorder = self.initializeRecorder(id, trailName, dims = self._size)
+        for frame in streamer:
+            frame = cv2.flip(frame, 1)
+            annotations=mappingFunc.calculateOutputValuesWithAnnotations(frame)
+            outputValues, inputValues, pPoints, landmarks = annotations
+            all3DPoints = \
+                mappingFunc.getEstimator().poseCalculator.calculateAll3DPoints()
+            frame, k = self.showSceneFrameWithFace(frame, all3DPoints,
+                                                   mappingFunc, trailStreamer)
+            self._write(recorder, frame)
+            if not k:
+                recorder.release()
+                break
+        recorder.release()
         return
     

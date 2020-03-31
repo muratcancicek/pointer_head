@@ -13,7 +13,8 @@ import os
 class PostDataGenerator(object):
     def __init__(self):
         super()
-        self.__estimator = HeadGazer() # PoseEstimator() # LandmarkDetector() # CVFaceDetector()
+        self.__estimator = HeadGazer() # PoseEstimator() # 
+        #LandmarkDetector() # CVFaceDetector()
         self.__visualizer = Scene3DVisualizer() # InputEstimationVisualizer() # 
 
     def openVideo(self, path):
@@ -43,9 +44,11 @@ class PostDataGenerator(object):
     def recordSubjectVideoWithAllInputs(self, id, trailName, subjectVideoPath):
         recorder = self.initializeRecorder(id, trailName)
         for subjFrame in self.openVideo(subjectVideoPath):
-            annotations = self.__estimator.estimateInputValuesWithAnnotations(subjFrame)
+            annotations = \
+                self.__estimator.estimateInputValuesWithAnnotations(subjFrame)
             inputValues, pPoints, landmarks = annotations
-            k = self.__visualizer.showFrameWithAllInputs(subjFrame, pPoints, landmarks)
+            k = self.__visualizer.showFrameWithAllInputs(subjFrame, 
+                                                         pPoints, landmarks)
             recorder.write(subjFrame)
             print('\rMerging frames (%d)...' % frameCount, end = '\r')   
         recorder = None
@@ -54,14 +57,17 @@ class PostDataGenerator(object):
         
     def playSubjectVideoWithAllInputs(self, subjectVideoPath):
         streamer = self.openVideo(subjectVideoPath)
-        self.__visualizer.playSubjectVideoWithAllInputs(self.__estimator, streamer)
+        self.__visualizer.playSubjectVideoWithAllInputs(self.__estimator, 
+                                                        streamer)
         return
 
-    def playSubjectVideoWithHeadGaze(self, subjectVideoPath):
-        outputSize = (1920, 1080)
+    def _getMappingFunc(self, outputSize = (1920, 1080)):
         boundary = Boundary(0, outputSize[0], 0, outputSize[1])
         #self._mappingFunc = DynamicMapping(self.__estimator, boundary)
-        mappingFunc = StaticMapping(self.__estimator, boundary)
+        return StaticMapping(self.__estimator, boundary)
+
+    def playSubjectVideoWithHeadGaze(self, subjectVideoPath):
+        mappingFunc = self._getMappingFunc()
         streamer = self.openVideo(subjectVideoPath)
         self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer)
         return
@@ -70,27 +76,40 @@ class PostDataGenerator(object):
         subjectVideoName = subjectVideoPath.split(Paths.sep)[-1].split('_')
         trail = '_'.join(subjectVideoName[:subjectVideoName.index(id)])
         trailVideoPath = Paths.TrailVideosFolder + trail + '.avi'
-        outputSize = (1920, 1080)
-        boundary = Boundary(0, outputSize[0], 0, outputSize[1])
-        #self._mappingFunc = DynamicMapping(self.__estimator, boundary)
-        mappingFunc = StaticMapping(self.__estimator, boundary)
         streamer = self.openVideo(subjectVideoPath)
         trailStreamer = self.openVideo(trailVideoPath)
-        self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer, trailStreamer)
+        mappingFunc = self._getMappingFunc()
+        self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer,
+                                                      trailStreamer)
+            
+    def record3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
+        subjectVideoName = subjectVideoPath.split(Paths.sep)[-1].split('_')
+        trail = '_'.join(subjectVideoName[:subjectVideoName.index(id)])
+        trailVideoPath = Paths.TrailVideosFolder + trail + '.avi'
+        streamer = self.openVideo(subjectVideoPath)
+        trailStreamer = self.openVideo(trailVideoPath)
+        mappingFunc = self._getMappingFunc()
+        self.__visualizer.recordSubjectSceneVideoWithHeadGaze(mappingFunc, id,
+                                                 trail, streamer, trailStreamer)
 
 
-    def getPostDataFromSubjectVideo(self, subjectVideoPath, frameCount, tName = ''):
+    def getPostDataFromSubjectVideo(self, subjectVideoPath, 
+                                    frameCount, tName = ''):
         if tName != '': tName = ' for ' + tName
         postData = np.zeros((frameCount, 162))
         i = 0
         for subjFrame in self.openVideo(subjectVideoPath):
-            annotations = self.__estimator.estimateInputValuesWithAnnotations(subjFrame)
-            #annotations = self._mappingFunc.calculateOutputValuesWithAnnotations(subjFrame)
+            annotations = \
+                self.__estimator.estimateInputValuesWithAnnotations(subjFrame)
+            annotations = \
+               self._mappingFunc.calculateOutputValuesWithAnnotations(subjFrame)
             pose, pPoints, landmarks = annotations
-            postLine = np.concatenate((pose, landmarks.reshape((landmarks.size,)),
+            postLine = np.concatenate((pose, 
+                                       landmarks.reshape((landmarks.size,)),
                                        pPoints.reshape((pPoints.size,))), 0)
             print('\rGenerating PostData%s (%.2f)...' % (tName, 
-                                                         i/frameCount*100), end = '\r')   
+                                                         i/frameCount*100), 
+                  end = '\r')   
             postData[i] = postLine
             i += 1
         return postData
@@ -104,5 +123,6 @@ class PostDataGenerator(object):
     def replaySubjectVideoWithPostData(self, postData, subjectVideoPath):
         streamer = self.openVideo(subjectVideoPath)
         postDataGenerators = self._getPostDataAsGenerators(postData)
-        self.__visualizer.replaySubjectVideoWithPostData(postDataGenerators, streamer)
+        self.__visualizer.replaySubjectVideoWithPostData(postDataGenerators, 
+                                                         streamer)
         return

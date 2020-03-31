@@ -3,8 +3,9 @@ from VideoMerger import VideoMerger
 
 def testDataHandler():
     handler = DataHandler(readAllDataNow = False) 
-    #subjectTrail = handler.saveAllPostDataForSubject(2)
-    handler.merge3DSubjectTrailWithHeadGaze(1, 'infinity')
+    #subjectTrail = handler.saveAllPostDataForSubject(2)'infinity'
+    handler.record3DSubjectTrailWithHeadGaze(3, 'zigzag')
+    #handler.merge3DSubjectTrailWithHeadGaze(1, 'infinity')
     #handler.playSubjectTrailWithHeadGaze(2, 'zigzag')
     #handler.playSubjectTrailWithAllInputs(3, 'zigzag')
     #handler.savePostDataFromSubjectVideo(1, 'infinity')
