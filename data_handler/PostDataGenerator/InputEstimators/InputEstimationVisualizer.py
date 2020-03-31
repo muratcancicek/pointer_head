@@ -37,11 +37,11 @@ class InputEstimationVisualizer(object):
         return frame
 
     def addAllInputs(self, frame, pPoints = None,
-                     landmarks = None, outputValues = None):            
+                     landmarks = None, outputValues = None):    
+        if not landmarks is None:
+            frame = self.addLandmarks(frame, landmarks.astype(int))        
         if not pPoints is None:
             frame = self.addBox(frame, pPoints.astype(int))
-        if not landmarks is None:
-            frame = self.addLandmarks(frame, landmarks.astype(int))
         if not outputValues is None:
             frame = self.addPointer(frame, outputValues.astype(int))
         return frame
@@ -81,7 +81,8 @@ class InputEstimationVisualizer(object):
     
     def replaySubjectVideoWithPostData(self, postData, streamer):
         jointStreamer = zip(*(postData + (streamer,)))
-        for inputValues, pPoints, landmarks, frame in jointStreamer:
+        for inputValues, landmarks, pPoints, frame in jointStreamer:
+            print(pPoints.shape)
             k = self.showFrameWithAllInputs(frame, pPoints, landmarks)
             if not k:
                 break
