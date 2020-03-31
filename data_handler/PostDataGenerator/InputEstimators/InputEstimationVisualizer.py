@@ -82,7 +82,6 @@ class InputEstimationVisualizer(object):
     def replaySubjectVideoWithPostData(self, postData, streamer):
         jointStreamer = zip(*(postData + (streamer,)))
         for inputValues, landmarks, pPoints, frame in jointStreamer:
-            print(pPoints.shape)
             k = self.showFrameWithAllInputs(frame, pPoints, landmarks)
             if not k:
                 break
