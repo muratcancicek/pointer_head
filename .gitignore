@@ -10,3 +10,6 @@
 /data_handler/PostDataGenerator/__init__.py
 /data_handler/PostDataGenerator/InputEstimators/__pycache__
 /data_handler/PostDataGenerator/__pycache__
+/simple_ml_exp/__pycache__
+/tester
+/simple_ml_exp/simple_ml_exp.pyproj

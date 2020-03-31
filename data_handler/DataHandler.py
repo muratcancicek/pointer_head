@@ -1,6 +1,6 @@
-from PostDataGenerator.PostDataGenerator import PostDataGenerator
+from .PostDataGenerator.PostDataGenerator import PostDataGenerator
 import os, numpy as np
-import Paths
+from . import Paths
 
 class DataHandler(object):
     def __init__(self, dataFolder = Paths.TrailsDataFolder, readAllDataNow = False):
@@ -123,10 +123,10 @@ class DataHandler(object):
         gen, path = self.__playSubjectTrailWith(id, tName)
         gen.playSubjectVideoWithHeadGaze(path)
 
-    def merge3DSubjectTrailWithHeadGaze(self, id, tName):
+    def play3DSubjectTrailWithHeadGaze(self, id, tName):
         if isinstance(id, int): id = str(id)
         gen, path = self.__playSubjectTrailWith(id, tName)
-        gen.merge3DSubjectTrailWithHeadGaze(path, id)
+        gen.play3DSubjectTrailWithHeadGaze(path, id)
 
     def record3DSubjectTrailWithHeadGaze(self, id, tName):
         if isinstance(id, int): id = str(id)
@@ -165,7 +165,20 @@ class DataHandler(object):
     
     def replaySubjectVideoWithPostData(self, id, tName):
         if isinstance(id, int): id = str(id)
-        postData = self.loadPostDataOfSubjectVideo(id, tName)
+        self.readSubjectTrail(id, tName)
         postDataGenerator = PostDataGenerator()
         path = self.subjects[id][tName]['VideoPath']
+        postData = self.loadPostDataOfSubjectVideo(id, tName)
         postDataGenerator.replaySubjectVideoWithPostData(postData, path)
+    
+    def replay3DSubjectTrailWithHeadGaze(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.readSubjectTrail(id, tName)
+        gen, path = self.__playSubjectTrailWith(id, tName)
+        postData = self.loadPostDataOfSubjectVideo(id, tName)
+        gen.replay3DSubjectTrailWithPostData(postData, path, id)
+            
+    def getPoseToPointingData(self, subjId, tName):
+        if isinstance(subjId, int): subjId = str(subjId)
+        #PostDataGenerator.
+        data = self.loadPostDataOfSubjectVideo(subjId, tName)
