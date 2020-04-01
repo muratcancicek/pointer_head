@@ -3,15 +3,15 @@ import cv2
 
 class InputEstimationVisualizer(object):
     
-    def addBox(self, frame, pPoints):
+    def addBox(self, frame, pPts):
         color = (255, 255, 255)
-        cv2.polylines(frame, [pPoints], True, color, 2, cv2.LINE_AA)
-        if len(pPoints) > 4:
-            _pPoints = []
+        cv2.polylines(frame, [pPts], True, color, 2, cv2.LINE_AA)
+        if len(pPts) > 4:
+            _pPts = []
             for start, end in [(1,6), (2, 7), (3, 8)]:
-                p = (tuple(pPoints[start]), tuple(pPoints[end]))
-                _pPoints.append(p)
-            for start, end in _pPoints:
+                p = (tuple(pPts[start]), tuple(pPts[end]))
+                _pPts.append(p)
+            for start, end in _pPts:
                 cv2.line(frame, start, end, color, 2, cv2.LINE_AA)
         return frame
     
@@ -36,12 +36,12 @@ class InputEstimationVisualizer(object):
         cv2.circle(frame, (x, y), 1, (0, 0, 235), 56, cv2.LINE_AA)
         return frame
 
-    def addAllInputs(self, frame, pPoints = None,
+    def addAllInputs(self, frame, pPts = None,
                      landmarks = None, outputValues = None):    
         if not landmarks is None:
             frame = self.addLandmarks(frame, landmarks.astype(int))        
-        if not pPoints is None:
-            frame = self.addBox(frame, pPoints.astype(int))
+        if not pPts is None:
+            frame = self.addBox(frame, pPts.astype(int))
         if not outputValues is None:
             frame = self.addPointer(frame, outputValues.astype(int))
         return frame
@@ -54,35 +54,35 @@ class InputEstimationVisualizer(object):
         else:
             return True
 
-    def showFrameWithAllInputs(self, frame, pPoints = None,
+    def showFrameWithAllInputs(self, frame, pPts = None,
                      landmarks = None, outputValues = None, delay = 1):
-        frame = self.addAllInputs(frame, pPoints, landmarks, outputValues)
+        frame = self.addAllInputs(frame, pPts, landmarks, outputValues)
         return self.showFrame(frame, delay)
     
     def playSubjectVideoWithAllInputs(self, estimator, streamer):
         for frame in streamer:
             annotations = estimator.estimateInputValuesWithAnnotations(frame)
-            inputValues, pPoints, landmarks = annotations
-            k = self.showFrameWithAllInputs(frame, pPoints, landmarks)
+            inputValues, pPts, landmarks = annotations
+            k = self.showFrameWithAllInputs(frame, pPts, landmarks, inputValues)
             if not k:
                 break
         return
     
     def playSubjectVideoWithHeadGaze(self, mappingFunc, streamer):
         for frame in streamer:
-            annotations = mappingFunc.calculateOutputValuesWithAnnotations(frame)
-            outputValues, inputValues, pPoints, landmarks = annotations
-            pp = mappingFunc.getEstimator().poseCalculator.calculate3DScreen()
-            frame = self.addBox(frame, pp.astype(int))
-            k = self.showFrameWithAllInputs(frame, pPoints, landmarks, inputValues)
+            annotations = \
+                mappingFunc.calculateOutputValuesWithAnnotations(frame)
+            outputValues, inputValues, pPts, landmarks = annotations
+            k = self.showFrameWithAllInputs(frame, pPts, 
+                                            landmarks, outputValues)
             if not k:
                 break
         return
     
     def replaySubjectVideoWithPostData(self, postData, streamer):
         jointStreamer = zip(*(postData + (streamer,)))
-        for inputValues, landmarks, pPoints, frame in jointStreamer:
-            k = self.showFrameWithAllInputs(frame, pPoints, landmarks)
+        for headGaze, pose, landmarks, pPts, frame in jointStreamer:
+            k = self.showFrameWithAllInputs(frame, pPts, landmarks, headGaze)
             if not k:
                 break
         return

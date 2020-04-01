@@ -11,6 +11,16 @@ import cv2
 import os
 
 class PostDataGenerator(object):
+    
+    gaze_b_ind = 0
+    gaze_e_ind = 2
+    pose_b_ind = gaze_e_ind
+    pose_e_ind = gaze_e_ind + 6
+    landmark_b_ind = pose_e_ind
+    landmark_e_ind = landmark_b_ind + 136
+    proPts_b_ind = landmark_e_ind
+    proPts_e_ind = proPts_b_ind + 20
+
     def __init__(self):
         super()
         self.__estimator = HeadGazer() # PoseEstimator() # 
@@ -72,39 +82,38 @@ class PostDataGenerator(object):
         self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer)
         return
     
-    def merge3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
+    def _getTrailStreamer(self, subjectVideoPath, id):
         subjectVideoName = subjectVideoPath.split(Paths.sep)[-1].split('_')
         trail = '_'.join(subjectVideoName[:subjectVideoName.index(id)])
         trailVideoPath = Paths.TrailVideosFolder + trail + '.avi'
+        return self.openVideo(trailVideoPath)
+
+    def play3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
+        trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
         streamer = self.openVideo(subjectVideoPath)
-        trailStreamer = self.openVideo(trailVideoPath)
         mappingFunc = self._getMappingFunc()
-        self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer,
-                                                      trailStreamer)
+        self.__visualizer.playSubjectVideoWithHeadGaze(self.__estimator,
+                                                      streamer, trailStreamer)
             
     def record3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
-        subjectVideoName = subjectVideoPath.split(Paths.sep)[-1].split('_')
-        trail = '_'.join(subjectVideoName[:subjectVideoName.index(id)])
-        trailVideoPath = Paths.TrailVideosFolder + trail + '.avi'
+        trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
         streamer = self.openVideo(subjectVideoPath)
-        trailStreamer = self.openVideo(trailVideoPath)
         mappingFunc = self._getMappingFunc()
         self.__visualizer.recordSubjectSceneVideoWithHeadGaze(mappingFunc, id,
                                                  trail, streamer, trailStreamer)
 
-
     def getPostDataFromSubjectVideo(self, subjectVideoPath, 
                                     frameCount, tName = ''):
         if tName != '': tName = ' for ' + tName
-        postData = np.zeros((frameCount, 162))
+        postData = np.zeros((frameCount, 164))
         i = 0
+        mappingFunc = self._getMappingFunc()
         for subjFrame in self.openVideo(subjectVideoPath):
             annotations = \
                 self.__estimator.estimateInputValuesWithAnnotations(subjFrame)
-            annotations = \
-               self._mappingFunc.calculateOutputValuesWithAnnotations(subjFrame)
-            pose, pPoints, landmarks = annotations
-            postLine = np.concatenate((pose, 
+            gaze, pPoints, landmarks = annotations
+            pose = self.__estimator.getHeadPose()
+            postLine = np.concatenate((gaze, pose, 
                                        landmarks.reshape((landmarks.size,)),
                                        pPoints.reshape((pPoints.size,))), 0)
             print('\rGenerating PostData%s (%.2f)...' % (tName, 
@@ -115,14 +124,28 @@ class PostDataGenerator(object):
         return postData
     
     def _getPostDataAsGenerators(self, postData):
-        inputValues = (l[:6] for l in postData)
-        landmarks = (l[6:142].reshape((68, 2)) for l in postData)
-        pPoints = (l[142:].reshape((10, 2)) for l in postData)
-        return (inputValues, landmarks, pPoints)
+        PDG = PostDataGenerator
+        headGazes = (l[PDG.gaze_b_ind:PDG.gaze_e_ind] for l in postData)
+        poses = (l[PDG.pose_b_ind:PDG.pose_e_ind] for l in postData)
+        landmarks = (l[PDG.landmark_b_ind:PDG.landmark_e_ind].reshape((68, 2)) 
+                     for l in postData)
+        pPoints = (l[PDG.proPts_b_ind:PDG.proPts_e_ind].reshape((10, 2)) 
+                   for l in postData)
+        return (headGazes, poses, landmarks, pPoints)
 
     def replaySubjectVideoWithPostData(self, postData, subjectVideoPath):
         streamer = self.openVideo(subjectVideoPath)
         postDataGenerators = self._getPostDataAsGenerators(postData)
         self.__visualizer.replaySubjectVideoWithPostData(postDataGenerators, 
                                                          streamer)
+        return
+
+    def replay3DSubjectTrailWithPostData(self, postData, subjectVideoPath, id):
+        trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
+        streamer = self.openVideo(subjectVideoPath)
+        print(postData.shape)
+        postDataGenerators = self._getPostDataAsGenerators(postData)
+        self.__visualizer.replay3DSubjectTrailWithPostData(postDataGenerators, 
+                                                    streamer, self.__estimator,
+                                                    trailStreamer)
         return

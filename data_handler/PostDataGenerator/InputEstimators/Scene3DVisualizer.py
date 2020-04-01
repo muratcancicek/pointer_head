@@ -183,11 +183,9 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         top_left = (points[:, 0].min(), points[:, 1].min())
         bottom_right = (points[:, 0].max(), points[:, 1].max())
         return top_left, bottom_right
-        #return (0, 0), (int(trailFrame.shape[1]/4), int(trailFrame.shape[0]/4))
 
     def addTrailToSceneFrame(self, scene0, scene, trailFrame):
         top_left, bottom_right = self.find3DScreenInScene(scene0, trailFrame)
-        #scene = cv2.rectangle(scene, top_left, bottom_right, (0,0,255), 4)
         w, h = bottom_right[0] - top_left[0], bottom_right[1] - top_left[1]
         trailFrame = cv2.resize(trailFrame, (w, h))
         bg = np.zeros_like(scene)
@@ -198,24 +196,24 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         scene = cv2.addWeighted(scene, 1, bg, 1, 0)
         return scene
 
-    def addPointingValueToSceneFrame(self, scene, all3DPoints):
+    def addPointingValueToSceneFrame(self, scene, headGaze):
         font = cv2.FONT_HERSHEY_SIMPLEX
-        v = 5*(all3DPoints[-1]-all3DPoints[0])
-        s = '%d px, %d px' % tuple([int(i) for i in v[:2]])
+        s = '%d px, %d px' % tuple([int(i) for i in headGaze[:2]])
         p = (int(scene.shape[1]/2)-120,int(scene.shape[0]/2))
         scene = cv2.putText(scene, s, p, font, 1, (255,255,255), 1, cv2.LINE_AA)
         return scene
     
-    def showSceneFrameWithFace(self, frame, all3DPoints, 
-                               mappingFunc, trailStreamer = None):
+    def showSceneFrameWithFace(self, frame, all3DPoints,
+                              estimator, trailStreamer = None):
         screenProj, landmarksProj, noseProj = \
-           mappingFunc.getEstimator().poseCalculator.calculateall3DProjections()
+           estimator.poseCalculator.calculateAll3DProjections()
         scene0 = self.plot3DPoints(all3DPoints)
         scene = self.addFaceToSceneFrame(frame, scene0, landmarksProj)
         if not trailStreamer is None:
             trailFrame = next(trailStreamer)
             scene = self.addTrailToSceneFrame(scene0, scene, trailFrame)
-        self.addPointingValueToSceneFrame(scene, all3DPoints)
+        headGaze = estimator.poseCalculator.calculateHeadGazeProjection()
+        self.addPointingValueToSceneFrame(scene, headGaze)
         return scene, self.showFrame(scene)
     
     def showMergedLargeFrame(self, frame, all3DPoints, landmarks3d, landmarks):
@@ -224,10 +222,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         dist = np.linalg.norm(p[:, :-1]-p2[:, :-1])*129/50
         pp, pp2 = landmarks[39:40], landmarks[42:43]
         dist2 = np.linalg.norm(pp[:, :-1]-pp2[:, :-1])
-        #print(dist,dist2)
         r = 1 if dist2 == 0 else dist/dist2
         #print(r)
-        print(scene.shape)#, img = frame* ( 125.88 )25.4, 
 
         frame = self.addLandmarks(frame, landmarks.astype(int))
         frame = cv2.circle(frame, (int(frame.shape[1]/2),int(frame.shape[0]/2)),
@@ -276,19 +272,18 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         ##frame = self.addBox(frame, noseProj.astype(int))
         return self.showFrame(largeFrame)
 
-    def playSubjectVideoWithHeadGaze(self, mappingFunc, 
+    def playSubjectVideoWithHeadGaze(self, estimator, 
                                      streamer, trailStreamer = None):
+        if not trailStreamer is None:
+            trailStreamer = (cv2.flip(tf, 1) for tf in trailStreamer)
         for frame in streamer:
-            frame = cv2.flip(frame, 1)
-            annotations=mappingFunc.calculateOutputValuesWithAnnotations(frame)
-            outputValues, inputValues, pPoints, landmarks = annotations
-            all3DPoints = \
-                mappingFunc.getEstimator().poseCalculator.calculateAll3DPoints()
-            k = self.showScene(all3DPoints)
+            estimator.estimateInputValuesWithAnnotations(frame)
+            all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
+            #k = self.showScene(all3DPoints)
             #k = self.showSceneFrame(all3DPoints)
             #k = self.showSceneFrameWithFace(frame, all3DPoints, mappingFunc)
-            #f, k = self.showSceneFrameWithFace(frame, all3DPoints,
-                                            #mappingFunc, trailStreamer)
+            f, k = self.showSceneFrameWithFace(frame, all3DPoints,
+                                               estimator, trailStreamer)
             #k = self.showSceneWithTrail(all3DPoints, trailStreamer)
             #k = self.showProjectedFrame(frame, mappingFunc, landmarks)
             #k = self.showMergedLargeFrame(frame, all3DPoints,
@@ -306,7 +301,6 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         recordName = trailName + '_%s_%s_merged3DScene.avi' % (id, now)
         print(dir + recordName, 'will be written')
         return  cv2.VideoWriter(dir + recordName, fourcc, fps, dims)
- 
  
     def _write(self, recorder, frame):
         background = np.zeros((self._size[1], self._size[0], 3))
@@ -332,5 +326,22 @@ class Scene3DVisualizer(InputEstimationVisualizer):
                 recorder.release()
                 break
         recorder.release()
+        return
+    
+    def replay3DSubjectTrailWithPostData(self, postData, streamer, 
+                                         estimator, trailStreamer = None):
+        jointStreamer = zip(*(postData + (streamer,)))
+        if not trailStreamer is None:
+            trailStreamer = (cv2.flip(tf, 1) for tf in trailStreamer)
+        for headGaze, pose, landmarks, pPts, frame in jointStreamer:
+            estimator.poseCalculator.updatePose(pose)
+            all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
+            #k = self.showScene(all3DPoints)
+            #k = self.showSceneFrame(all3DPoints)
+            #k = self.showSceneFrameWithFace(frame, all3DPoints, estimator)
+            f, k = self.showSceneFrameWithFace(frame, all3DPoints,
+                                            estimator, trailStreamer)
+            if not k:
+                break
         return
     

@@ -224,15 +224,15 @@ class MappingABC(ABC):
 class StaticMapping(MappingABC):
         
     def _calculate(self):
-        #inputRanges = self._inputBoundaries.getRanges()
-        #outputRanges = self._outputBoundaries.getRanges()
-        #ratios = self._inputBoundaries.getVolumeAbsRatio(self._inputValues)
-        #if isinstance(self._inputEstimator, HeadPoseEstimatorABC) and \
-        #           not isinstance(self._inputEstimator, HeadGazer):
-        #    t = ratios[0]; ratios[0] = ratios[1]; ratios[1] = t
-        #i = self._outputValues.shape[0]
-        self._outputValues = self._inputValues #ratios[:i] * outputRanges[:i]
-        return self._inputValues
+        inputRanges = self._inputBoundaries.getRanges()
+        outputRanges = self._outputBoundaries.getRanges()
+        ratios = self._inputBoundaries.getVolumeAbsRatio(self._inputValues)
+        if isinstance(self._inputEstimator, HeadPoseEstimatorABC) and \
+                   not isinstance(self._inputEstimator, HeadGazer):
+            t = ratios[0]; ratios[0] = ratios[1]; ratios[1] = t
+        i = self._outputValues.shape[0]
+        self._outputValues = ratios[:i] * outputRanges[:i]
+        return self._outputValues
     
 class DynamicMapping(MappingABC):
     def __init__(self, inputEstimator, outputBoundaries, xSpeed = 1, ySpeed = 1,
