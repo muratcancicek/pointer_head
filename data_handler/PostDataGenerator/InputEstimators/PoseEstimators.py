@@ -211,8 +211,8 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
                 raw_value.append(line)
         model_points = np.array(raw_value, dtype=np.float32)
         model_points = np.reshape(model_points, (3, -1)).T
-        # model_points *= 4
-        model_points[:, -1] *= -1
+        # model_points *= 4      
+        #model_points[:, -1] *= -1
         return model_points
     
     def __init__(self, face_model_path = None, inputFramesize = (1920, 1080), *args, **kwargs):
@@ -288,7 +288,8 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         super().__init__(face_model_path, inputFramesize, *args, **kwargs)
         self._front_depth = 700
         self._rectCorners3D = self._get_3d_points(rear_size = 40, rear_depth = 0, 
-                                                  front_size = 40, front_depth = self._front_depth)
+                                                  front_size = 40, 
+                                                  front_depth = self._front_depth)
         self._objectPointsVec = [self._faceModelPoints]
         self._imagePointsVec = []
 
@@ -300,10 +301,13 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         if len(self._imagePointsVec) < n+1:
             return
         self._imagePointsVec.pop(0)
-        print(ip.shape, self._faceModelPoints.shape, len(self._objectPointsVec), len(self._imagePointsVec))
-        retval, cameraMatrix, distCoeffs, rvecs, tvecs = cv2.calibrateCamera(self._objectPointsVec, self._imagePointsVec, (1920, 1080), 
-                                                                             self._camera_matrix, self._dist_coeffs,
-                                                                             flags=(cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT))
+        print(ip.shape, self._faceModelPoints.shape, 
+              len(self._objectPointsVec), len(self._imagePointsVec))
+        flags=(cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT)
+        retval, cameraMatrix, distCoeffs, rvecs, tvecs = \
+            cv2.calibrateCamera(self._objectPointsVec, self._imagePointsVec, 
+                                (1920, 1080), self._camera_matrix, 
+                                self._dist_coeffs,  flags=flags)
         self._camera_matrix, self._dist_coeffs = cameraMatrix, distCoeffs
         self._rotation_vector, self._translation_vector = rvecs[0], tvecs[0]
 
@@ -312,8 +316,9 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
                 self.calculatePose(shape)
         if not (self._rotation_vector is None or self._translation_vector is None):
             self._front_depth = self._translation_vector[2, 0] 
-            self._rectCorners3D = self._get_3d_points(rear_size = 0, rear_depth = 55, 
-                                        front_size = 0, front_depth = self._front_depth)
+            self._rectCorners3D = \
+                self._get_3d_points(rear_size = 0, rear_depth = 55, front_size = 0, 
+                                    front_depth = self._front_depth)
             point_2d, _ = cv2.projectPoints(self._rectCorners3D, self._rotation_vector, 
                                             self._translation_vector, self._camera_matrix,
                                            self._dist_coeffs)
@@ -322,7 +327,8 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
 
     def calculateHeadGazeProjection(self):
         output = 5*(self.get3DNose()[-1] -
-                    self.get3DScreen()[0])
+                    self.get3DScreen()[3])
+        output[0] *= -1
         return output[:-1]
 
     def calculateHeadGazeWithProjectionPoints(self, shape):
@@ -333,14 +339,11 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
 
     def translateTo3D(self, points):
         rot = self._rotation_vector.copy()
-        rot[0, 0] *= -1
-        rot[1, 0] *= -1
         rotation_mat, _ = cv2.Rodrigues(rot)
-        t_vec = self._translation_vector[:]
+        t_vec = self._translation_vector.copy()
         project_mat = cv2.hconcat((rotation_mat, t_vec))
         project_mat = np.concatenate((project_mat, np.zeros((1, 4))), 0)
         project_mat[-1, -1] = 1
-        points[:, -1] *= -1
         points_ = np.concatenate((points, np.ones((points.shape[0], 1))), 1)
         points3d = np.matmul(project_mat, points_.T).T[:, :-1]
         return points3d
@@ -356,7 +359,7 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
     
     def get3DNose(self):
         nose =  self._get_3d_points(rear_size = 0, 
-                                    rear_depth = 55, front_size = 0, 
+                                    rear_depth = 0, front_size = 0, 
                                     front_depth = self._front_depth)
         nose = self.translateTo3D(nose)
         p1, p2 = nose[0], nose[-1]; dist = p1 - p2
@@ -418,27 +421,33 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         return screenProj, landmarksProj, noseProj
 
 class HeadGazer(PoseEstimator):
-    def __init__(self, faceDetector = None, landmarkDetector = None, poseCalculator = None, face_landmark_path = None, inputFramesize = (1920, 1080), *args, **kwargs):
+    def __init__(self, faceDetector = None, landmarkDetector = None, 
+                 poseCalculator = None, face_landmark_path = None, 
+                 inputFramesize = (1920, 1080), *args, **kwargs):
         if poseCalculator == None:
-            poseCalculator = MuratcansHeadGazeCalculator(inputFramesize = inputFramesize)
+            poseCalculator = \
+                MuratcansHeadGazeCalculator(inputFramesize = inputFramesize)
         self._pPoints = np.zeros((1, 2))
         self._gazingFrameSize = inputFramesize
         self._halfFrameHeight = inputFramesize[1]/2
-        super().__init__(faceDetector, landmarkDetector, poseCalculator, face_landmark_path, inputFramesize, *args, **kwargs)
+        super().__init__(faceDetector, landmarkDetector, poseCalculator, 
+                         face_landmark_path, inputFramesize, *args, **kwargs)
         
     def calculateHeadPose(self, frame):
         self._landmarks = self._landmarkDetector.detectFacialLandmarks(frame)
         if len(self._landmarks) == 0:
             return self._headPose3D
         else:
-            self._headPose3D = self._poseCalculator.calculatePose(self._landmarks)
+            self._headPose3D = \
+                self._poseCalculator.calculatePose(self._landmarks)
             return self._headPose3D
                     
     def calculateHeadGaze(self, frame):
         self._landmarks = self._landmarkDetector.detectFacialLandmarks(frame)
         if len(self._landmarks) != 0:
             self._halfFrameHeight = frame.shape[0]/2
-            g = self._poseCalculator.calculateHeadGazeWithProjectionPoints(self._landmarks) 
+            g = self._poseCalculator\
+                .calculateHeadGazeWithProjectionPoints(self._landmarks) 
             self._headPose3D, self._pPoints = g
             return self._headPose3D
             

@@ -77,9 +77,9 @@ class PostDataGenerator(object):
         return StaticMapping(self.__estimator, boundary)
 
     def playSubjectVideoWithHeadGaze(self, subjectVideoPath):
-        mappingFunc = self._getMappingFunc()
         streamer = self.openVideo(subjectVideoPath)
-        self.__visualizer.playSubjectVideoWithHeadGaze(mappingFunc, streamer)
+        self.__visualizer.playSubjectVideoWithHeadGaze(self.__estimator, 
+                                                       streamer)
         return
     
     def _getTrailStreamer(self, subjectVideoPath, id):
@@ -91,15 +91,13 @@ class PostDataGenerator(object):
     def play3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
         trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
         streamer = self.openVideo(subjectVideoPath)
-        mappingFunc = self._getMappingFunc()
         self.__visualizer.playSubjectVideoWithHeadGaze(self.__estimator,
                                                       streamer, trailStreamer)
             
     def record3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
         trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
         streamer = self.openVideo(subjectVideoPath)
-        mappingFunc = self._getMappingFunc()
-        self.__visualizer.recordSubjectSceneVideoWithHeadGaze(mappingFunc, id,
+        self.__visualizer.recordSubjectSceneVideoWithHeadGaze(self.__estimator, id,
                                                  trail, streamer, trailStreamer)
 
     def getPostDataFromSubjectVideo(self, subjectVideoPath, 
@@ -107,7 +105,6 @@ class PostDataGenerator(object):
         if tName != '': tName = ' for ' + tName
         postData = np.zeros((frameCount, 164))
         i = 0
-        mappingFunc = self._getMappingFunc()
         for subjFrame in self.openVideo(subjectVideoPath):
             annotations = \
                 self.__estimator.estimateInputValuesWithAnnotations(subjFrame)
