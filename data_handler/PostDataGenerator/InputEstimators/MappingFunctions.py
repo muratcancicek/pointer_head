@@ -1,8 +1,8 @@
 # Author: Muratcan Cicek, https://users.soe.ucsc.edu/~cicekm/
 
-from PostDataGenerator.InputEstimators.PoseEstimators import HeadPoseEstimatorABC, HeadGazer 
-from PostDataGenerator.InputEstimators.LandmarkDetectors import FacialLandmarkDetectorABC, LandmarkDetector
-from PostDataGenerator.InputEstimators.FaceDetectors import FaceBox, FaceDetectorABC, CVFaceDetector
+from .PoseEstimators import HeadPoseEstimatorABC, HeadGazer 
+from .LandmarkDetectors import FacialLandmarkDetectorABC, LandmarkDetector
+from .FaceDetectors import FaceBox, FaceDetectorABC, CVFaceDetector
 
 from abc import ABC, abstractmethod
 import numpy as np

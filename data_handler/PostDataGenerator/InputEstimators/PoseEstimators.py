@@ -1,9 +1,9 @@
 # Author: Muratcan Cicek, https://users.soe.ucsc.edu/~cicekm/
 
-from PostDataGenerator.InputEstimators.InputEstimatorABC import InputEstimatorABC
-from PostDataGenerator.InputEstimators.FaceDetectors import CVFaceDetector
-from PostDataGenerator.InputEstimators.LandmarkDetectors import LandmarkDetector
-from Paths import CV2Res10SSD_frozen_face_model_path
+from .InputEstimatorABC import InputEstimatorABC
+from .FaceDetectors import CVFaceDetector
+from .LandmarkDetectors import LandmarkDetector
+from ...Paths import CV2Res10SSD_frozen_face_model_path
 from abc import ABC, abstractmethod
 import numpy as np, math
 import cv2

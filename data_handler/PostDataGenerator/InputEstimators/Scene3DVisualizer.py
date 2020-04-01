@@ -1,11 +1,11 @@
-from PostDataGenerator.InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
-from PostDataGenerator.InputEstimators.InputEstimationVisualizer import InputEstimationVisualizer
-from Paths import CV2Res10SSD_frozen_face_model_path
+from .MappingFunctions import Boundary, StaticMapping, DynamicMapping
+from .InputEstimationVisualizer import InputEstimationVisualizer
+from ...Paths import CV2Res10SSD_frozen_face_model_path
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot
 from datetime import datetime
 import numpy as np
-import Paths
+from ... import Paths
 import cv2
 import os
 import io

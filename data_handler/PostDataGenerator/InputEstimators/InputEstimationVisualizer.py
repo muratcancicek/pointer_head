@@ -1,4 +1,4 @@
-from PostDataGenerator.InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
+from .MappingFunctions import Boundary, StaticMapping, DynamicMapping
 import cv2
 
 class InputEstimationVisualizer(object):

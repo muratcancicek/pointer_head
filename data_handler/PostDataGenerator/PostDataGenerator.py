@@ -1,12 +1,12 @@
-from PostDataGenerator.InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
-from PostDataGenerator.InputEstimators.InputEstimationVisualizer import InputEstimationVisualizer
-from PostDataGenerator.InputEstimators.Scene3DVisualizer import Scene3DVisualizer
-from PostDataGenerator.InputEstimators.PoseEstimators import PoseEstimator, HeadGazer
-#from PostDataGenerator.InputEstimators.LandmarkDetectors import LandmarkDetector
-#from PostDataGenerator.InputEstimators.FaceDetectors import CVFaceDetector
+from .InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
+from .InputEstimators.InputEstimationVisualizer import InputEstimationVisualizer
+from .InputEstimators.Scene3DVisualizer import Scene3DVisualizer
+from .InputEstimators.PoseEstimators import PoseEstimator, HeadGazer
+#from .InputEstimators.LandmarkDetectors import LandmarkDetector
+#from .InputEstimators.FaceDetectors import CVFaceDetector
 from datetime import datetime
+from .. import Paths
 import numpy as np
-import Paths
 import cv2
 import os
 

@@ -1,8 +1,8 @@
 # The code is derived from the following repository:
 # https://github.com/yeephycho/tensorflow-face-detection
 
-from PostDataGenerator.InputEstimators.InputEstimatorABC import InputEstimatorABC
-from Paths import TFMobileNetSSDFaceDetector_tf_model_path
+from .InputEstimatorABC import InputEstimatorABC
+from ...Paths import TFMobileNetSSDFaceDetector_tf_model_path
 from abc import ABCMeta, abstractmethod
 import tensorflow as tf
 import numpy as np

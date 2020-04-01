@@ -1,8 +1,7 @@
 # Author: Muratcan Cicek, https://users.soe.ucsc.edu/~cicekm/
-
-from PostDataGenerator.InputEstimators.InputEstimatorABC import InputEstimatorABC
-from PostDataGenerator.InputEstimators.FaceDetectors import CVFaceDetector
-from Paths import YinsFacialLandmarkDetector_tf_model_path
+from .InputEstimatorABC import InputEstimatorABC
+from .FaceDetectors import CVFaceDetector
+from ...Paths import YinsFacialLandmarkDetector_tf_model_path
 import cv2, numpy as np, tensorflow as tf
 from abc import abstractmethod
 

@@ -1,5 +1,5 @@
 from datetime import datetime
-import Paths
+from . import Paths
 import cv2
 import os
 
