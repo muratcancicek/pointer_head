@@ -178,7 +178,9 @@ class DataHandler(object):
         postData = self.loadPostDataOfSubjectVideo(id, tName)
         gen.replay3DSubjectTrailWithPostData(postData, path, id)
             
-    def getPoseToPointingData(self, subjId, tName):
+    def getHeadGazeToPointingData(self, subjId, tName):
         if isinstance(subjId, int): subjId = str(subjId)
-        #PostDataGenerator.
-        data = self.loadPostDataOfSubjectVideo(subjId, tName)
+        data = self.readSubjectTrail(subjId, tName)['t']['data']
+        postData = self.loadPostDataOfSubjectVideo(subjId, tName)
+        PDG = PostDataGenerator
+        return data, postData[:, PDG.gaze_b_ind:PDG.gaze_e_ind]
