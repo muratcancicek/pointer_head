@@ -140,7 +140,6 @@ class PostDataGenerator(object):
     def replay3DSubjectTrailWithPostData(self, postData, subjectVideoPath, id):
         trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
         streamer = self.openVideo(subjectVideoPath)
-        print(postData.shape)
         postDataGenerators = self._getPostDataAsGenerators(postData)
         self.__visualizer.replay3DSubjectTrailWithPostData(postDataGenerators, 
                                                     streamer, self.__estimator,

@@ -351,11 +351,8 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
     def updatePose(self, pose):
         self._pose = pose
         self._translation_vector = pose[:3].reshape((3, 1))
-        #self._translation_vector[0, 0] *= -1
         self._rotation_vector = np.array([math.radians(t) for t in pose[3:]])
         self._rotation_vector = self._rotation_vector.reshape((3, 1))
-        #self._rotation_vector[1, 0] *= -1
-        #self._pose = np.concatenate((self._translation_vector[:,0], rv), 0)
     
     def get3DNose(self):
         nose =  self._get_3d_points(rear_size = 0, 
