@@ -6,6 +6,7 @@ from .LandmarkDetectors import LandmarkDetector
 from ...Paths import CV2Res10SSD_frozen_face_model_path
 from abc import ABC, abstractmethod
 import numpy as np, math
+from pykalman import KalmanFilter
 import cv2
 
 class HeadPoseEstimatorABC(InputEstimatorABC):
@@ -92,91 +93,6 @@ class PoseCalculatorABC(ABC):
     
 class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
    
-    class Stabilizer:
-        """Using Kalman filter as a point stabilizer."""
-
-        def __init__(self, state_num=4, measure_num=2, cov_process=0.0001, cov_measure=0.1):
-            """Initialization"""
-            # Currently we only support scalar and point, so check user input first.
-            assert state_num == 4 or state_num == 2, "Only scalar and point supported, Check state_num please."
-
-            # Store the parameters.
-            self.state_num = state_num
-            self.measure_num = measure_num
-
-            # The filter itself.
-            self.filter = cv2.KalmanFilter(state_num, measure_num, 0)
-
-            # Store the state.
-            self.state = np.zeros((state_num, 1), dtype=np.float32)
-
-            # Store the measurement result.
-            self.measurement = np.array((measure_num, 1), np.float32)
-
-            # Store the prediction.
-            self.prediction = np.zeros((state_num, 1), np.float32)
-
-            # Kalman parameters setup for scalar.
-            if self.measure_num == 1:
-                self.filter.transitionMatrix = np.array([[1, 1], [0, 1]], np.float32)
-
-                self.filter.measurementMatrix = np.array([[1, 1]], np.float32)
-
-                self.filter.processNoiseCov = np.array([[1, 0], [0, 1]], np.float32) * cov_process
-
-                self.filter.measurementNoiseCov = np.array( [[1]], np.float32) * cov_measure
-
-            # Kalman parameters setup for point.
-            if self.measure_num == 2:
-                self.filter.transitionMatrix = np.array([[1, 0, 1, 0],
-                                                         [0, 1, 0, 1],
-                                                         [0, 0, 1, 0],
-                                                         [0, 0, 0, 1]], np.float32)
-
-                self.filter.measurementMatrix = np.array([[1, 0, 0, 0],
-                                                          [0, 1, 0, 0]], np.float32)
-
-                self.filter.processNoiseCov = np.array([[1, 0, 0, 0],
-                                                        [0, 1, 0, 0],
-                                                        [0, 0, 1, 0],
-                                                        [0, 0, 0, 1]], np.float32) * cov_process
-
-                self.filter.measurementNoiseCov = np.array([[1, 0],
-                                                            [0, 1]], np.float32) * cov_measure
-
-        def update(self, measurement):
-            """Update the filter"""
-            # Make kalman prediction
-            self.prediction = self.filter.predict()
-
-            # Get new measurement
-            if self.measure_num == 1:
-                self.measurement = np.array([[np.float32(measurement[0])]])
-            else:
-                self.measurement = np.array([[np.float32(measurement[0])],
-                                             [np.float32(measurement[1])]])
-
-            # Correct according to mesurement
-            self.filter.correct(self.measurement)
-
-            # Update state value.
-            self.state = self.filter.statePost
-
-        def set_q_r(self, cov_process=0.1, cov_measure=0.001):
-            """Set new value for processNoiseCov and measurementNoiseCov."""
-            if self.measure_num == 1:
-                self.filter.processNoiseCov = np.array([[1, 0],
-                                                        [0, 1]], np.float32) * cov_process
-                self.filter.measurementNoiseCov = np.array(
-                    [[1]], np.float32) * cov_measure
-            else:
-                self.filter.processNoiseCov = np.array([[1, 0, 0, 0],
-                                                        [0, 1, 0, 0],
-                                                        [0, 0, 1, 0],
-                                                        [0, 0, 0, 1]], np.float32) * cov_process
-                self.filter.measurementNoiseCov = np.array([[1, 0],
-                                                            [0, 1]], np.float32) * cov_measure
-   
     @staticmethod
     def _getCameraMatrix(size):
         scale = 3840/size[0]
@@ -213,13 +129,23 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
         model_points = np.reshape(model_points, (3, -1)).T
         # model_points *= 4      
         #model_points[:, -1] *= -1
-        return model_points
+        return model_points 
+
+    def __get_kalman_filter(self):
+        w, h = 1920, 1080
+        self._mf = [0, 0, 700, 0, 0, 0]
+        self._cf = 6*[[192, 107, 100, math.pi/1800, math.pi/1800, math.pi/1800]]
+        self._kf = KalmanFilter(initial_state_mean=self._mf, initial_state_covariance=self._cf)
+        self._mf = [[m] for m in self._mf]
+        return self._kf
+
     
     def __init__(self, face_model_path = None, inputFramesize = (1920, 1080), *args, **kwargs):
         super().__init__(*args, **kwargs)
         if face_model_path == None:
             face_model_path = CV2Res10SSD_frozen_face_model_path
         self._faceModelPoints = self.__get_full_model_points(face_model_path)
+        self._inputFramesize = inputFramesize 
         self._front_depth = 100
         self._rectCorners3D = self._get_3d_points(rear_size = 80, rear_depth = 0, 
                                                   front_size = 10, front_depth = self._front_depth)
@@ -229,23 +155,42 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
                                       [0.001658348839202715592], [-0.0006434617243149612104]
                                       ,[0.3660073010818283845]])
         self._rotation_vector = np.array([[-0.0], [0.0], [-0.0]]) 
-        self._translation_vector = np.array([[0.0], [0.0], [700.0]])# None 
-        self._pose_stabilizers = self.__get_pose_stabilizers()
+        self._translation_vector = np.array([[0.0], [0.0], [550.0]])# None 
+        #self._pose_stabilizers = self.__get_pose_stabilizers()
+        self._kf = self.__get_kalman_filter()
 
     def solve_pose_by_68_points(self, image_points): 
         image_points = image_points.astype('float32')
-        #print('\r%s' % str(image_points.shape), end = '\r')
-        (_, rotation_vector, translation_vector) = \
-            cv2.solvePnP(self._faceModelPoints, image_points,
-                        self._camera_matrix, self._dist_coeffs,#)
+        (_, rotation_vector, translation_vector, _) = \
+            cv2.solvePnPRansac(self._faceModelPoints, image_points,
+                        self._camera_matrix, self._dist_coeffs,
                          rvec=self._rotation_vector, 
-                         tvec=self._translation_vector, useExtrinsicGuess=True)
+                         tvec=self._translation_vector, useExtrinsicGuess=True)#)
+        #rv = str([math.degrees(t[0]) for t in rotation_vector])
+        #s = 'forw'
+        #rr = rotation_vector % 2*math.pi
+        #if translation_vector[2] < 0:
+            #translation_vector[:, 0] *= -1
+            #rotation_vector[0, 0] *= -1
+            #rotation_vector[1, 0] *= -1
+            #rotation_vector[-1, 0] = (rotation_vector[-1, 0]-math.pi)
+            #s = 'back' 
+        #tv = str([t[0] for t in translation_vector])
+        #rv2 = str([math.degrees(t[0]) for t in rr])
+        #print('\r%s %s %s' % (s, tv, rv), end = '\r')math.degrees()
+        #print('%s %s %s %s' % (s, tv, rv, rv2))     
+        self._rotation_vector = rotation_vector
+        self._translation_vector = translation_vector
         return (rotation_vector, translation_vector)
 
     def calculatePose(self, shape):
         pose = self.solve_pose_by_68_points(shape)
-        rv =  np.array([math.degrees(t[0]) for t in self._rotation_vector])
+        rv =  np.array([t[0] for t in self._rotation_vector])
         self._pose = np.concatenate((self._translation_vector[:,0], rv), 0)
+        self._mf, self._cf = self._kf.filter_update(self._mf, self._cf, self._pose)
+        self._pose = self._mf[0]
+        self._rotation_vector = self._pose[3:].reshape((3, 1))
+        self._translation_vector = self._pose[:3].reshape((3, 1))
         return self._pose
 
 class PoseEstimator(HeadPoseEstimatorABC):
@@ -335,6 +280,18 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         self._pose = self.calculatePose(shape)
         self._projectionPoints = self.calculateProjectionPointsAsGaze(shape)
         output = self.calculateHeadGazeProjection()
+        return output, self._projectionPoints
+
+    def calculateReverseHeadGazeWithProjectionPoints(self, shape):
+        pose = self.solve_pose_by_68_points(shape)
+        output = self.calculateHeadGazeProjection()
+        output[0] = self._inputFramesize[0]-output[0]
+        self._rotation_vector[0, 0] *= -1
+        self._rotation_vector[1, 0] *= -1
+        #self._translation_vector[0, 0] *= -1
+        rv =  np.array([math.degrees(t[0]) for t in self._rotation_vector])
+        self._pose = np.concatenate((self._translation_vector[:,0], rv), 0)
+        self._projectionPoints = self.calculateProjectionPointsAsGaze(shape)
         return output, self._projectionPoints
 
     def translateTo3D(self, points):
@@ -450,6 +407,27 @@ class HeadGazer(PoseEstimator):
             
     def _calculateHeadPoseWithAnnotations(self, frame):
         self._headPose3D = self.calculateHeadGaze(frame)
+        return self._headPose3D, self._pPoints, self._landmarks
+            
+    def calculateHeadPoseWithAnnotations(self, frame, landmarks = None):
+        if landmarks is None:
+            self._headPose3D = self.calculateHeadGaze(frame)
+        else:
+            self._landmarks = landmarks
+            if len(self._landmarks) != 0:
+                self._halfFrameHeight = frame.shape[0]/2
+                g = self._poseCalculator\
+                    .calculateHeadGazeWithProjectionPoints(self._landmarks) 
+                self._headPose3D, self._pPoints = g
+        return self._headPose3D, self._pPoints, self._landmarks
+
+    def estimateReverseInputValuesWithAnnotations(self, frame):
+        self._landmarks = self._landmarkDetector.detectFacialLandmarks(frame)
+        if len(self._landmarks) != 0:
+            self._halfFrameHeight = frame.shape[0]/2
+            g = self._poseCalculator\
+                .calculateReverseHeadGazeWithProjectionPoints(self._landmarks) 
+            self._headPose3D, self._pPoints = g
         return self._headPose3D, self._pPoints, self._landmarks
     
     def getHeadPose(self):

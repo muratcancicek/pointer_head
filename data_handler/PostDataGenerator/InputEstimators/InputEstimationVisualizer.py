@@ -60,9 +60,13 @@ class InputEstimationVisualizer(object):
         return self.showFrame(frame, delay)
     
     def playSubjectVideoWithAllInputs(self, estimator, streamer):
+        print(0)
         for frame in streamer:
-            annotations = estimator.estimateInputValuesWithAnnotations(frame)
+            annotations = \
+                estimator.estimateReverseInputValuesWithAnnotations(frame)
             inputValues, pPts, landmarks = annotations
+            pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
+            inputValues[0] = frame.shape[1] - inputValues[0]
             k = self.showFrameWithAllInputs(frame, pPts, landmarks, inputValues)
             if not k:
                 break
@@ -73,8 +77,10 @@ class InputEstimationVisualizer(object):
             annotations = \
                 mappingFunc.calculateOutputValuesWithAnnotations(frame)
             outputValues, inputValues, pPts, landmarks = annotations
+            pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
+            headGaze[0] = frame.shape[1] - headGaze[0]
             k = self.showFrameWithAllInputs(frame, pPts, 
-                                            landmarks, outputValues)
+                                            landmarks, inputValues)
             if not k:
                 break
         return
@@ -82,6 +88,8 @@ class InputEstimationVisualizer(object):
     def replaySubjectVideoWithPostData(self, postData, streamer):
         jointStreamer = zip(*(postData + (streamer,)))
         for headGaze, pose, landmarks, pPts, frame in jointStreamer:
+            pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
+            headGaze[0] = frame.shape[1] - headGaze[0]
             k = self.showFrameWithAllInputs(frame, pPts, landmarks, headGaze)
             if not k:
                 break

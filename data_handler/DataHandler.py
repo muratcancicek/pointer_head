@@ -74,6 +74,8 @@ class DataHandler(object):
         if id in self.subjects:
             return self.subjects[id]
         self.subjects[id] = {}
+        self.subjects[id]['ts'] = {}
+        self.subjects[id]['pairs'] = {}
         self.subjects[id]['Folder'] = Paths.SubjectsFolder + id + Paths.sep
         self.subjects[id]['VideoList'] = os.listdir(self.subjects[id]['Folder'])
         return self.subjects[id]
@@ -90,11 +92,11 @@ class DataHandler(object):
     def _readSubjectTrail(self, id, tName):
         self.trails[tName] = self.getTrail(tName)
         subjectVideoName = self.__findSubjectVideoName(id, tName)
-        self.subjects[id][tName] = {}
-        self.subjects[id][tName]['t'] = self.trails[tName]
+        self.subjects[id]['ts'][tName] = {}
+        self.subjects[id]['ts'][tName]['t'] = self.trails[tName]
         subjectVideoPath = self.subjects[id]['Folder'] + subjectVideoName
-        self.subjects[id][tName]['VideoPath'] = subjectVideoPath
-        return self.subjects[id][tName]
+        self.subjects[id]['ts'][tName]['VideoPath'] = subjectVideoPath
+        return self.subjects[id]['ts'][tName]
 
     def readSubjectTrail(self, id, tName):
         if isinstance(id, int): id = str(id)
@@ -113,7 +115,7 @@ class DataHandler(object):
         if isinstance(id, int): id = str(id)
         self.readSubjectTrail(id, tName)
         gen = PostDataGenerator()
-        return gen, self.subjects[id][tName]['VideoPath']
+        return gen, self.subjects[id]['ts'][tName]['VideoPath']
 
     def playSubjectTrailWithAllInputs(self, id, tName):
         gen, path = self.__playSubjectTrailWith(id, tName)
@@ -133,21 +135,36 @@ class DataHandler(object):
         gen, path = self.__playSubjectTrailWith(id, tName)
         gen.record3DSubjectTrailWithHeadGaze(path, id)
 
+    def replaySubjectVideoWithPostData(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.readSubjectTrail(id, tName)
+        postDataGenerator = PostDataGenerator()
+        path = self.subjects[id]['ts'][tName]['VideoPath']
+        postData = self.loadPostDataOfSubjectVideo(id, tName)
+        postDataGenerator.replaySubjectVideoWithPostData(postData, path)
+    
+    def replay3DSubjectTrailWithHeadGaze(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.readSubjectTrail(id, tName)
+        gen, path = self.__playSubjectTrailWith(id, tName)
+        postData = self.loadPostDataOfSubjectVideo(id, tName)
+        gen.replay3DSubjectTrailWithPostData(postData, path, id)
+            
     def generatePostDataFromSubjectVideo(self, id, tName):
         if isinstance(id, int): id = str(id)
         self.readSubjectTrail(id, tName)
         postDataGenerator = PostDataGenerator()
-        path = self.subjects[id][tName]['VideoPath']
-        c =  self.subjects[id][tName]['t']['meta']['frameCount']
+        path = self.subjects[id]['ts'][tName]['VideoPath']
+        c =  self.subjects[id]['ts'][tName]['t']['meta']['frameCount']
         return postDataGenerator.getPostDataFromSubjectVideo(path, c, tName)
 
     def savePostDataFromSubjectVideo(self, id, tName):
         if isinstance(id, int): id = str(id)
         postData = self.generatePostDataFromSubjectVideo(id, tName)
-        fileName = self.subjects[id][tName]['t']['meta']['name']+'_PostData.csv'
-        path = Paths.PostDataFolder + id + Paths.sep + fileName 
+        f = self.subjects[id]['ts'][tName]['t']['meta']['name']+'_PostData.csv'
+        path = Paths.PostDataFolder + id + Paths.sep + f 
         np.savetxt(path, postData, delimiter=',')
-        print('\r%s has been saved successfully.' % fileName, end = '\r')  
+        print('\r%s has been saved successfully.' % f, end = '\r')  
 
     def saveAllPostDataForSubject(self, id):
         if isinstance(id, int): id = str(id)
@@ -159,28 +176,69 @@ class DataHandler(object):
     def loadPostDataOfSubjectVideo(self, id, tName):
         if isinstance(id, int): id = str(id)
         self.readSubjectTrail(id, tName)
-        fileName = self.subjects[id][tName]['t']['meta']['name']+'_PostData.csv'
-        path = Paths.PostDataFolder + id + Paths.sep + fileName 
-        return np.loadtxt(path, delimiter=',')
+        f = self.subjects[id]['ts'][tName]['t']['meta']['name']+'_PostData.csv'
+        path = Paths.PostDataFolder + id + Paths.sep + f 
+        self.subjects[id]['ts'][tName]['p'] = np.loadtxt(path, delimiter=',')
+        return self.subjects[id]['ts'][tName]['p']
     
-    def replaySubjectVideoWithPostData(self, id, tName):
+    def loadAllPostDataOfSubject(self, id):
         if isinstance(id, int): id = str(id)
-        self.readSubjectTrail(id, tName)
-        postDataGenerator = PostDataGenerator()
-        path = self.subjects[id][tName]['VideoPath']
-        postData = self.loadPostDataOfSubjectVideo(id, tName)
-        postDataGenerator.replaySubjectVideoWithPostData(postData, path)
+        self.readAllSubjectTrails(id)
+        postDataSet = {}
+        for tName in self.subjects[id]['ts']:
+            postDataSet[tName] = self.loadPostDataOfSubjectVideo(id, tName)
+        return postDataSet
     
-    def replay3DSubjectTrailWithHeadGaze(self, id, tName):
-        if isinstance(id, int): id = str(id)
-        self.readSubjectTrail(id, tName)
-        gen, path = self.__playSubjectTrailWith(id, tName)
-        postData = self.loadPostDataOfSubjectVideo(id, tName)
-        gen.replay3DSubjectTrailWithPostData(postData, path, id)
-            
-    def getHeadGazeToPointingData(self, subjId, tName):
+    def loadDatasetPairFor(self, subjId, tName):
         if isinstance(subjId, int): subjId = str(subjId)
-        data = self.readSubjectTrail(subjId, tName)['t']['data']
         postData = self.loadPostDataOfSubjectVideo(subjId, tName)
+        self.subjects[subjId]['pairs'][tName] = \
+            self.subjects[subjId]['ts'][tName]['t']['data'], postData
+        return self.subjects[subjId]['pairs'][tName]
+    
+    def getDatasetPairFor(self, subjId, tName):
+        if isinstance(subjId, int): subjId = str(subjId)
+        self.addSubject(subjId)
+        if tName in self.subjects[subjId]['pairs']:
+            return self.subjects[subjId]['pairs'][tName]
+        else:
+            return self.loadDatasetPairFor(subjId, tName)
+    
+    def loadAllDatasetPairsFor(self, subjId):
+        if isinstance(subjId, int): subjId = str(subjId)
+        postDataSet = self.loadAllPostDataOfSubject(subjId)
+        for tName in self.subjects[subjId]['ts']:
+            if not tName in self.subjects[subjId]['pairs']:
+                self.subjects[subjId]['pairs'][tName] = \
+                    self.getDatasetPairFor(subjId, tName)
+        return self.subjects[subjId]['pairs']
+    
+    def getAllDatasetPairsFor(self, subjId):
+        if isinstance(subjId, int): subjId = str(subjId)
+        return self.loadAllDatasetPairsFor(subjId)    
+    
+    def getHeadGazeToPointingDataFor(self, subjId, tName):
+        if isinstance(subjId, int): subjId = str(subjId)
+        data, postData = self.getDatasetPairFor(subjId, tName)
         PDG = PostDataGenerator
         return data, postData[:, PDG.gaze_b_ind:PDG.gaze_e_ind]
+            
+    def getAllHeadGazeToPointingPairs(self, subjId): 
+        if isinstance(subjId, int): subjId = str(subjId)
+        pairsSet = self.getAllDatasetPairsFor(subjId)
+        PDG = PostDataGenerator
+        return {tName: (data, postData[:, PDG.gaze_b_ind:PDG.gaze_e_ind])
+               for tName, (data, postData) in pairsSet.items()}
+    
+    def getHeadPoseToPointingDataFor(self, subjId, tName):
+        if isinstance(subjId, int): subjId = str(subjId)
+        data, postData = self.getDatasetPairFor(subjId, tName)
+        PDG = PostDataGenerator
+        return data, postData[:, PDG.pose_b_ind:PDG.pose_e_ind]
+            
+    def getAllHeadPoseToPointingPairs(self, subjId): 
+        if isinstance(subjId, int): subjId = str(subjId)
+        pairsSet = self.getAllDatasetPairsFor(subjId)
+        PDG = PostDataGenerator
+        return {tName: (data, postData[:, PDG.pose_b_ind:PDG.pose_e_ind])
+               for tName, (data, postData) in pairsSet.items()}

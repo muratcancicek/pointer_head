@@ -86,16 +86,18 @@ class PostDataGenerator(object):
         subjectVideoName = subjectVideoPath.split(Paths.sep)[-1].split('_')
         trail = '_'.join(subjectVideoName[:subjectVideoName.index(id)])
         trailVideoPath = Paths.TrailVideosFolder + trail + '.avi'
-        return self.openVideo(trailVideoPath)
+        return trail, self.openVideo(trailVideoPath)
 
     def play3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
-        trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
+        trail, trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
+        print(subjectVideoPath)
+        print(trail)
         streamer = self.openVideo(subjectVideoPath)
         self.__visualizer.playSubjectVideoWithHeadGaze(self.__estimator,
-                                                      streamer, trailStreamer)
+                                               streamer, trailStreamer)
             
     def record3DSubjectTrailWithHeadGaze(self, subjectVideoPath, id):
-        trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
+        trail, trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
         streamer = self.openVideo(subjectVideoPath)
         self.__visualizer.recordSubjectSceneVideoWithHeadGaze(self.__estimator, id,
                                                  trail, streamer, trailStreamer)
@@ -138,7 +140,7 @@ class PostDataGenerator(object):
         return
 
     def replay3DSubjectTrailWithPostData(self, postData, subjectVideoPath, id):
-        trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
+        trail, trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
         streamer = self.openVideo(subjectVideoPath)
         postDataGenerators = self._getPostDataAsGenerators(postData)
         self.__visualizer.replay3DSubjectTrailWithPostData(postDataGenerators, 

@@ -6,6 +6,7 @@ from matplotlib import pyplot
 from datetime import datetime
 import numpy as np
 from ... import Paths
+import math
 import cv2
 import os
 import io
@@ -153,6 +154,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
     def find3DFaceInScene(self, scene, landmarksProj):
         scene = (scene > 0).astype(np.uint8)*255
         points = np.where(np.all(scene == self._landmarkColor, axis=-1))
+        if (points[0].size) < 1:
+            return (0, 0), (300, 170)
         points = np.array([[x, y] for y, x in set(zip(points[0], points[1]))])
         top_left = (points[:, 0].min(), points[:, 1].min())
         bottom_right = (points[:, 0].max(), points[:, 1].max())
@@ -163,6 +166,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         xb, yb = landmarksProj[:, 0].min(), landmarksProj[:, 1].min()
         xe, ye = landmarksProj[:, 0].max(), landmarksProj[:, 1].max()
         temp = frame[yb-offset:ye+offset, xb-offset:xe+offset]
+        if temp.shape[0] == 0 or temp.shape[1] == 0:
+            return scene
         top_left, bottom_right = \
            self.find3DFaceInScene(scene, landmarksProj)
         #scene = cv2.rectangle(scene, top_left, bottom_right, (0,0,255), 4)
@@ -183,6 +188,8 @@ class Scene3DVisualizer(InputEstimationVisualizer):
     def find3DScreenInScene(self, scene, trailFrame):
         scene = (scene > 0).astype(np.uint8)*255
         points = np.where(np.all(scene == self._screenColor, axis=-1))
+        if (points[0].size) < 1:
+            return (0, 0), (300, 170)
         points = np.array([[x, y] for y, x in set(zip(points[0], points[1]))])
         top_left = (points[:, 0].min(), points[:, 1].min())
         bottom_right = (points[:, 0].max(), points[:, 1].max())
@@ -283,14 +290,14 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         for frame in streamer:
             #frame = frame
             #estimator.estimateInputValuesWithAnnotations(cv2.flip(frame, 1))
-            estimator.estimateInputValuesWithAnnotations(frame)
-            #frame = self.addLandmarks(frame, landmarksProj)
+            _, _, l = estimator.estimateInputValuesWithAnnotations(frame)
+            frame = self.addLandmarks(frame, l)
             all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
             #k = self.showScene(all3DPoints)
-            #k = self.showSceneFrame(all3DPoints)
-            #k = self.showSceneFrameWithFace(frame, all3DPoints, mappingFunc)
-            f, k = self.showSceneFrameWithFace(frame, all3DPoints,
-                                               estimator, trailStreamer)
+            #f, k = self.showSceneFrame(all3DPoints)
+            f, k = self.showSceneFrameWithFace(frame, all3DPoints, estimator)
+            #f, k = self.showSceneFrameWithFace(frame, all3DPoints,
+            #                                   estimator, trailStreamer)
             #k = self.showSceneWithTrail(all3DPoints, trailStreamer)
             #k = self.showProjectedFrame(frame, mappingFunc, landmarks)
             #k = self.showMergedLargeFrame(frame, all3DPoints,
@@ -317,22 +324,38 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         background[yb:ye, xb:xe] = frame
         recorder.write(background.astype(np.uint8))
 
-    def recordSubjectSceneVideoWithHeadGaze(self, mappingFunc, id, trailName, 
+    def recordSubjectSceneVideoWithHeadGaze(self, estimator, id, trailName, 
                                      streamer, trailStreamer = None):
         recorder = self.initializeRecorder(id, trailName, dims = self._size)
         for frame in streamer:
-            frame = cv2.flip(frame, 1)
-            annotations=mappingFunc.calculateOutputValuesWithAnnotations(frame)
-            outputValues, inputValues, pPoints, landmarks = annotations
-            all3DPoints = \
-                mappingFunc.getEstimator().poseCalculator.calculateAll3DPoints()
+            annotations = estimator.estimateInputValuesWithAnnotations(frame)
+            inputValues, pPoints, landmarks = annotations
+            all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
             frame, k = self.showSceneFrameWithFace(frame, all3DPoints,
-                                                   mappingFunc, trailStreamer)
+                                                   estimator, trailStreamer)
             self._write(recorder, frame)
             if not k:
                 recorder.release()
                 break
         recorder.release()
+        return
+    
+    def replay3DSubjectTrailWithPostData0(self, postData, streamer, 
+                                         estimator, trailStreamer = None):
+        jointStreamer = zip(*(postData + (streamer,)))
+        if not trailStreamer is None:
+            trailStreamer = (cv2.flip(tf, 1) for tf in trailStreamer)
+        for headGaze, pose, landmarks, pPts, frame in jointStreamer:
+            frame = self.addLandmarks(frame, landmarks.astype(int))
+            estimator.poseCalculator.updatePose(pose)
+            all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
+            #k = self.showScene(all3DPoints)
+            #k = self.showSceneFrame(all3DPoints)
+            #k = self.showSceneFrameWithFace(frame, all3DPoints, estimator)
+            f, k = self.showSceneFrameWithFace(frame, all3DPoints,
+                                            estimator, trailStreamer)
+            if not k:
+                break
         return
     
     def replay3DSubjectTrailWithPostData(self, postData, streamer, 
@@ -341,11 +364,18 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         if not trailStreamer is None:
             trailStreamer = (cv2.flip(tf, 1) for tf in trailStreamer)
         for headGaze, pose, landmarks, pPts, frame in jointStreamer:
-            estimator.poseCalculator.updatePose(pose)
+            frame = self.addLandmarks(frame, landmarks.astype(int))
+            annotations = estimator.calculateHeadPoseWithAnnotations(frame, landmarks)
+            headGaze2, pPts, landmarks = annotations
+            pose2 = estimator.getHeadPose()
+            #estimator.poseCalculator.updatePose(pose)
+            #print(pose, pose2)
+            #rv = str([math.degrees(t[0]) for t in pose[3:]])math.degrees(t)math.degrees(t)
+            rv = str([t % 360 for t in pose[3:]])
+            rv2 = str([t % 360 for t in pose2[3:]])
+            print('%s %s' % (rv, rv2))   
+            #print('\r%s %s %s' % (s, tv, rv), end = '\r')  
             all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
-            #k = self.showScene(all3DPoints)
-            #k = self.showSceneFrame(all3DPoints)
-            #k = self.showSceneFrameWithFace(frame, all3DPoints, estimator)
             f, k = self.showSceneFrameWithFace(frame, all3DPoints,
                                             estimator, trailStreamer)
             if not k:
