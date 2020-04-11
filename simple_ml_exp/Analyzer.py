@@ -1,7 +1,11 @@
 from matplotlib import pyplot as plt
 from pykalman import KalmanFilter
+from PIL import Image 
 import numpy as np
 import math 
+import cv2
+import os
+import io
 
 class Analyzer(object):
     def __init__(self):
@@ -47,25 +51,138 @@ class Analyzer(object):
             xCorr, yCorr = postData[:, 2].min(), postData[:, 2].max()
             print('%s %.3f %.3f' % (tName, xCorr, yCorr))
              
-    def testKalmanFilter(self, data, data2): 
-        w, h = 1920, 1080
-        mns =[0, 0, 700, 0, 0, 0]# np.array([], dtype = float)
-        cs = 6*[[192, 107, 100, math.pi, math.pi, math.pi]]#np.array(, dtype = float)
-        #print(cs)
-        #print(mns.shape, cs.shape)
-        kf = KalmanFilter(initial_state_mean=mns, initial_state_covariance=cs, n_dim_state=6)
-
-        #m, v = kf.filter(data2)
-        #print(m)
-        m = np.zeros_like(data2)
-        mf, cf = [[0], [0], [700], [0], [0], [0]], 6*[[192, 107, 100, math.pi/1800, math.pi/1800, math.pi/1800]]
-        for i, y in enumerate(data2):
-            mf, cf = kf.filter_update(mf, cf, y)
-            m[i] = mf[0]
+    def getCov(self, data, data2): 
+        return [np.cov(data2[:, i]) for i in range(6)]
+             
+    def printCovForSet(self, pairsSet): 
+        print('tName X-Axis Y-Axis')
+        for tName, (data, postData) in pairsSet.items():
+            cov = self.getCov(data, postData)
+            print('%s %.3f %.3f %.3f %.3f %.3f %.3f' % (tName, *cov))
             
-        print(m.shape)
-        data = data[:, 0]
-        data2 = [math.degrees(r) for r in data2[:, 4]]
-        m = [math.degrees(r) for r in m[:, 4]]
+    def plotHeadGazeAndPointingFor(self, pointing, gaze): 
+        fig = plt.figure()
+        ax1 = fig.add_subplot(211)
+        ax1.set_title('HeadGazeAndPointing')
+        ax1.set_ylim(-960, 1920+960)
+        ax1.set_ylabel('X')
+        ax1.plot(pointing[:, 0])
+        ax1.plot(gaze[:, 0])
 
-        self.plotTwoSets(data, data2, m)
+        ax2 = fig.add_subplot(212)
+        ax2.set_ylim(-540, 1080+540)
+        ax2.set_ylabel('Y')
+        ax2.plot(pointing[:, 1])
+        ax2.plot(gaze[:, 1])
+        plt.show()
+
+    def plotHeadGazeAndPointingFo(self, *data, title = 'Plot', plot = True): 
+        fig = plt.figure(figsize = (21, 9))
+        #fig = plt.figure(figsize = (63, 27), dpi = 200)
+        ax1 = fig.add_subplot(211)
+        ax1.set_title(title)
+        ax1.set_ylim(-960, 1920+960)
+        ax1.set_ylabel('X')
+        #ax1.set_xlim(200, 300)
+        lines = []
+        for d, _ in data:
+            l, = ax1.plot(d[:, 0])
+            lines.append(l)
+        ax1.legend(lines, [l for d, l in data])
+
+        ax2 = fig.add_subplot(212)
+        ax2.set_ylim(-540, 1080+540)
+        #ax2.set_xlim(200, 300)
+        ax2.set_ylabel('Y')
+        lines = []
+        for d, _ in data:
+            l, = ax2.plot(d[:, 1])
+            lines.append(l)
+        ax2.legend(lines, [l for d, l in data])
+        if plot:
+            plt.show()
+        return fig
+
+    def plotHead(self): 
+        p = 'C:\\cStorage\\Datasets\\WhiteBallExp\\PostData'
+        i = 1
+        t = 'infinity' # 'zigzag' # 
+        paths = [
+            (p + '\\%d\\%s_PostData.csv' % (i, t), 'PnP_KF'),
+            (p + '_pnpRansac_kf\\%d\\%s_PostData.csv'%(i,t), 'PnP_RASNAC_KF'),
+            (p + '_pnp\\%d\\%s_PostData.csv' % (i, t), 'PnP'),
+            (p + '_pnpRansac\\%d\\%s_PostData.csv' % (i, t), 'PnP_RASNAC'),
+                 ]
+        sets = [(np.loadtxt(p, delimiter=',')[:, :2], l) for p, l in paths]
+        self.plotHeadGazeAndPointingFo(*sets)
+        
+    def mean_squared_error(self, y, y_hat): 
+        return np.square(y - y_hat).mean()
+
+    def printMSE(self, y, y_hat): 
+        mse = np.square(y - y_hat).mean() 
+        print('MSE: %.3f' % mse)
+        return mse
+    
+    def get_img_from_fig(self, fig, dpi=125.88):
+        buf = io.BytesIO()
+        plt.savefig(buf, format="png", dpi=dpi)
+        buf.seek(0)
+        img_arr = np.frombuffer(buf.getvalue(), dtype=np.uint8)
+        buf.close()
+        buf = cv2.imdecode(img_arr, 1)
+        return buf
+    
+    def plotPrediction(self, y, y_hat, y_gd = None, title = '', plot = True): 
+        if title == '': title = 'PoseAndPointing'
+        g = [y, y_hat]
+        t = ['y', 'y_hat']
+        if not y_gd is None:
+            g = [y_gd] + g
+            t = ['y_gd'] + t
+        plots = zip(g, t)
+        title += ' (mse=%.3f)' % self.mean_squared_error(y, y_hat)
+        f = self.plotHeadGazeAndPointingFo(*plots, title = title, plot = plot)
+        #plt.close()
+        return f
+
+    def getPredictionPlot(self, y, y_hat, y_gd = None, title = '', plot=False): 
+        f = self.plotPrediction(y, y_hat, y_gd, title, plot)
+        img = self.get_img_from_fig(f)
+        return img
+
+    def getPredictionResultImages(self, results, path, text, plot = False):
+        figures = []
+        for y_r, y_hat_r, y_gd, title in results:
+            f = self.getPredictionPlot(y_r, y_hat_r, y_gd, title, plot)
+            figures.append(f)
+        return figures
+
+    def getModelSummaryImage(self, sampleImg, text):
+        shape = (50 * (len(text) + 2), ) + sampleImg.shape[1:]
+        img = np.ones(shape, dtype = sampleImg.dtype)*255
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        p = (int(img.shape[1]/4), 50)
+        for l in text:
+            img = cv2.putText(img, l, p, font, 1, (0, 0, 0), 1, cv2.LINE_AA)
+            p = p[0], p[1] + 50
+        return img
+
+    def getPredResultImagesMerged(self, results, path, text, plot=False):
+        images = self.getPredictionResultImages(results, path, text, plot)
+        mergedImg = images[0]
+        sumImg = self.getModelSummaryImage(mergedImg, text)
+        images.append(sumImg)
+        for f in images[1:]:
+            mergedImg = np.concatenate((mergedImg, f))
+        return mergedImg
+
+    def savePredictionResults(self, results, path, text, plot = False):
+        mergedImg = self.getPredResultImagesMerged(results, path, text, plot)
+        cv2.imwrite(path, mergedImg)
+
+    def savePredictionResultsAsPDF(self, results, path, text, plot = False):
+        mergedImg = self.getPredResultImagesMerged(results, path, text, plot)
+        mergedImg = cv2.cvtColor(mergedImg, cv2.COLOR_BGR2RGB)
+        pdf = Image.fromarray(mergedImg)
+        pdf.save(path)

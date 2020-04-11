@@ -8,6 +8,7 @@ TrailVideosFolder = TrailsFolder + 'videos' + sep
 TrailSnapshotsFolder = TrailsFolder + 'snapshots' + sep
 SubjectsFolder = WhiteBallExpFolder + 'Subjects' + sep
 PostDataFolder = WhiteBallExpFolder + 'PostData' + sep
+AnalysisFolder = WhiteBallExpFolder + 'Analysis' + sep
 
 TF_Models_Folder = DATASETS_Folder + 'TF_Models' + sep
 TFMobileNetSSDFaceDetector_tf_model_path = TF_Models_Folder + \

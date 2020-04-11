@@ -111,14 +111,6 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
         return camera_matrix
 
     @staticmethod
-    def __get_pose_stabilizers():
-        Stabilizer = YinsKalmanFilteredHeadPoseCalculator.Stabilizer
-        stabilizers = []
-        for _ in range(6):
-            stabilizers.append(Stabilizer(state_num=2, measure_num=1, cov_process=0.1, cov_measure=0.1) )
-        return stabilizers
-
-    @staticmethod
     def __get_full_model_points(filename):
         """Get all 68 3D model points from file"""
         raw_value = []
@@ -128,15 +120,18 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
         model_points = np.array(raw_value, dtype=np.float32)
         model_points = np.reshape(model_points, (3, -1)).T
         # model_points *= 4      
-        #model_points[:, -1] *= -1
-        return model_points 
+        #model_points[:, -1] *=        return model_points 
+        return model_points
 
     def __get_kalman_filter(self):
         w, h = 1920, 1080
-        self._mf = [0, 0, 700, 0, 0, 0]
-        self._cf = 6*[[192, 107, 100, math.pi/1800, math.pi/1800, math.pi/1800]]
-        self._kf = KalmanFilter(initial_state_mean=self._mf, initial_state_covariance=self._cf)
-        self._mf = [[m] for m in self._mf]
+        self._mf = [0, 0, 0, 0, 0, 0]
+        self._cf = [0.001, 0.001, 0.001, math.pi/1800, math.pi/1800, math.pi/1800]
+        #self._cf = 6*[[0.001, 0.001, 0.001, math.pi/1800, math.pi/1800, math.pi/1800]]
+        self._kf = []
+        for m, c in zip(self._mf, self._cf):
+            self._kf.append(KalmanFilter(initial_state_mean=m, initial_state_covariance=c))
+        #self._mf = [[m] for m in self._mf]
         return self._kf
 
     
@@ -161,12 +156,12 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
 
     def solve_pose_by_68_points(self, image_points): 
         image_points = image_points.astype('float32')
-        (_, rotation_vector, translation_vector, _) = \
-            cv2.solvePnPRansac(self._faceModelPoints, image_points,
+        (_, rotation_vector, translation_vector) = \
+            cv2.solvePnP(self._faceModelPoints, image_points,
                         self._camera_matrix, self._dist_coeffs,
                          rvec=self._rotation_vector, 
                          tvec=self._translation_vector, useExtrinsicGuess=True)#)
-        #rv = str([math.degrees(t[0]) for t in rotation_vector])
+        #rv = str([math.degrees(t[0]) for t in rotation_vector]), _Ransac
         #s = 'forw'
         #rr = rotation_vector % 2*math.pi
         #if translation_vector[2] < 0:
@@ -187,8 +182,12 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
         pose = self.solve_pose_by_68_points(shape)
         rv =  np.array([t[0] for t in self._rotation_vector])
         self._pose = np.concatenate((self._translation_vector[:,0], rv), 0)
-        self._mf, self._cf = self._kf.filter_update(self._mf, self._cf, self._pose)
-        self._pose = self._mf[0]
+        for i, kf in enumerate(self._kf):
+            self._mf[i], self._cf[i] = self._kf[i].filter_update(self._mf[i], 
+                                                                 self._cf[i], self._pose[i])
+        self._pose[:] = self._mf
+        #self._mf, self._cf = self._kf.filter_update(self._mf, self._cf, self._pose)
+        #self._pose = self._mf[0]
         self._rotation_vector = self._pose[3:].reshape((3, 1))
         self._translation_vector = self._pose[:3].reshape((3, 1))
         return self._pose

@@ -3,9 +3,13 @@ import os, numpy as np
 from . import Paths
 
 class DataHandler(object):
-    def __init__(self, dataFolder = Paths.TrailsDataFolder, readAllDataNow = False):
+    def __init__(self, dataFolder = Paths.TrailsDataFolder, 
+                 postDataFolder = Paths.PostDataFolder, readAllDataNow = False):
         super()
         self.dataFolder = dataFolder
+        self.postDataFolder = postDataFolder
+        self.analysisFolder = Paths.AnalysisFolder
+        self.Paths = Paths
         self.trails = {}
         self.subjects = {}
         if readAllDataNow:
@@ -162,7 +166,7 @@ class DataHandler(object):
         if isinstance(id, int): id = str(id)
         postData = self.generatePostDataFromSubjectVideo(id, tName)
         f = self.subjects[id]['ts'][tName]['t']['meta']['name']+'_PostData.csv'
-        path = Paths.PostDataFolder + id + Paths.sep + f 
+        path = self.postDataFolder + id + Paths.sep + f 
         np.savetxt(path, postData, delimiter=',')
         print('\r%s has been saved successfully.' % f, end = '\r')  
 
@@ -177,7 +181,7 @@ class DataHandler(object):
         if isinstance(id, int): id = str(id)
         self.readSubjectTrail(id, tName)
         f = self.subjects[id]['ts'][tName]['t']['meta']['name']+'_PostData.csv'
-        path = Paths.PostDataFolder + id + Paths.sep + f 
+        path = self.postDataFolder + id + Paths.sep + f 
         self.subjects[id]['ts'][tName]['p'] = np.loadtxt(path, delimiter=',')
         return self.subjects[id]['ts'][tName]['p']
     
