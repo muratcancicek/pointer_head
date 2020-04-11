@@ -98,7 +98,7 @@ class KerasRunner(object):
         x_train, y_train, x_test, y_test, yList = expData
         t_mse, mse = hist.history['loss'][-1], np.square(y_test - y_hat).mean() 
         print()
-        mseText = 'Train MSE: %.3f / Test MSE: %.3f' % (t_mse, mse)
+        mseText = 'Train MSE: %.4f / Test MSE: %.4f' % (t_mse, mse)
         print(mseText)
         stringlist = []
         tx, ty =  x_train.shape[1], y_train.shape[1]

@@ -7,7 +7,7 @@ TrailsDataFolder = TrailsFolder + 'data' + sep
 TrailVideosFolder = TrailsFolder + 'videos' + sep
 TrailSnapshotsFolder = TrailsFolder + 'snapshots' + sep
 SubjectsFolder = WhiteBallExpFolder + 'Subjects' + sep
-PostDataFolder = WhiteBallExpFolder + 'PostData' + sep
+PostDataFolder = WhiteBallExpFolder + 'PostData_pnp_kf' + sep
 AnalysisFolder = WhiteBallExpFolder + 'Analysis' + sep
 
 TF_Models_Folder = DATASETS_Folder + 'TF_Models' + sep

@@ -76,12 +76,14 @@ class Analyzer(object):
         ax2.plot(gaze[:, 1])
         plt.show()
 
-    def plotHeadGazeAndPointingFo(self, *data, title = 'Plot', plot = True): 
+    def plotHeadGazeAndPointingFo(self, *data, title = 'Plot', 
+                                  plot = True, yLim = True): 
         fig = plt.figure(figsize = (21, 9))
         #fig = plt.figure(figsize = (63, 27), dpi = 200)
         ax1 = fig.add_subplot(211)
         ax1.set_title(title)
-        ax1.set_ylim(-960, 1920+960)
+        if yLim:
+            ax1.set_ylim(-960, 1920+960)
         ax1.set_ylabel('X')
         #ax1.set_xlim(200, 300)
         lines = []
@@ -91,7 +93,8 @@ class Analyzer(object):
         ax1.legend(lines, [l for d, l in data])
 
         ax2 = fig.add_subplot(212)
-        ax2.set_ylim(-540, 1080+540)
+        if yLim:
+            ax2.set_ylim(-540, 1080+540)
         #ax2.set_xlim(200, 300)
         ax2.set_ylabel('Y')
         lines = []
@@ -103,18 +106,19 @@ class Analyzer(object):
             plt.show()
         return fig
 
-    def plotHead(self): 
+    def plotHead(self, subjId, tName): 
         p = 'C:\\cStorage\\Datasets\\WhiteBallExp\\PostData'
         i = 1
         t = 'infinity' # 'zigzag' # 
+        fileName = '\\%d\\%s_PostData.csv'% (subjId, tName)
         paths = [
-            (p + '\\%d\\%s_PostData.csv' % (i, t), 'PnP_KF'),
-            (p + '_pnpRansac_kf\\%d\\%s_PostData.csv'%(i,t), 'PnP_RASNAC_KF'),
-            (p + '_pnp\\%d\\%s_PostData.csv' % (i, t), 'PnP'),
-            (p + '_pnpRansac\\%d\\%s_PostData.csv' % (i, t), 'PnP_RASNAC'),
+            (p + '_pnpRansac_kf' + fileName, 'PnP_RASNAC_KF'),
+            (p + '_pnpRansac' + fileName, 'PnP_RASNAC'),
+            (p + '_pnp' + fileName, 'PnP'),
+            (p + '_pnp_kf' + fileName, 'PnP_KF'),
                  ]
         sets = [(np.loadtxt(p, delimiter=',')[:, :2], l) for p, l in paths]
-        self.plotHeadGazeAndPointingFo(*sets)
+        self.plotHeadGazeAndPointingFo(*sets, yLim = False)
         
     def mean_squared_error(self, y, y_hat): 
         return np.square(y - y_hat).mean()

@@ -4,15 +4,23 @@ from .KerasRunner import KerasRunner
 from .Analyzer import Analyzer
 import math
 
-def testSimpleML0(DataHandler):
+def testSimpleML0(DataHandler, subjId = 1, tName = 'infinity'):
+    #handler = DataHandler(readAllDataNow = False) 
+    #data, postData = handler.getHeadGazeToPointingDataFor(1, 'infinity')
+    #analyzer.plotHeadGazeAndPointingFor(data, postData)
+    analyzer = Analyzer()
+    analyzer.plotHead(subjId, tName)
+
+
+def testCorrelation(DataHandler, subjId = 1):
     handler = DataHandler(readAllDataNow = False) 
-    data, postData = handler.getHeadGazeToPointingDataFor(1, 'infinity')
+    pairs = handler.getAllHeadPoseToPointingPairs(subjId)
     analyzer = Analyzer()
     analyzer.plotHeadGazeAndPointingFor(data, postData)
 
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
-    f = 'C:\\cStorage\\Datasets\\WhiteBallExp\\PostData\\'
+    f = 'C:\\cStorage\\Datasets\\WhiteBallExp\\PostData_pnp_kf\\'
     handler = DataHandler(postDataFolder = f, readAllDataNow = False) 
     runner = KerasRunner()
     #data, postData = handler.getHeadPoseToPointingDataFor(subjId, tName)
@@ -22,8 +30,8 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
 
      
 def main(DataHandler):
-   testSimpleML(DataHandler)
-   #testKeras(DataHandler)
+   #testSimpleML0(DataHandler)
+   testKeras(DataHandler)
 
 if __name__ == '__main__':
     raise NotImplementedError
