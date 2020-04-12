@@ -3,6 +3,7 @@ import os, numpy as np
 from . import Paths
 
 class DataHandler(object):
+    Paths = Paths
     def __init__(self, dataFolder = Paths.TrailsDataFolder, 
                  postDataFolder = Paths.PostDataFolder, readAllDataNow = False):
         super()

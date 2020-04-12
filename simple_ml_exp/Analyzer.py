@@ -111,21 +111,25 @@ class Analyzer(object):
         if plot:
             plt.show()
         return fig
-
-    def plotHead(self, subjId, tName): 
-        p = 'C:\\cStorage\\Datasets\\WhiteBallExp\\PostData'
-        i = 1
-        t = 'infinity' # 'zigzag' # 
-        fileName = '\\%d\\%s_PostData.csv'% (subjId, tName)
-        paths = [
-            (p + '_pnpRansac_kf' + fileName, 'PnP_RASNAC_KF'),
-            (p + '_pnpRansac' + fileName, 'PnP_RASNAC'),
-            (p + '_pnp' + fileName, 'PnP'),
-            (p + '_pnp_kf' + fileName, 'PnP_KF'),
-                 ]
-        sets = [(np.loadtxt(p, delimiter=',')[:, :2], l) for p, l in paths]
-        self.plotHeadGazeAndPointingFo(*sets, yLim = False)
+    
+    def plotHeadGazeFiltersFor(self, handlers, subjId, tName):
+        pairs = [(h.getHeadGazeToPointingDataFor(subjId, tName)[1], fltr)
+                 for fltr, h in handlers]
+        self.plotHeadGazeAndPointingFo(*pairs, yLim = False, 
+                                       title = 'HeadGazeFilters')
         
+    def plotHeadGazeFiltersForSubj(self, handlers, subjId):
+        pairSets = [(h.getAllHeadPoseToPointingPairs(subjId), fltr)
+                 for fltr, h in handlers]
+        trails = [tName for tName, _ in pairSets[0][0].items()]
+        for tName in trails:
+            pairs = [(prs[tName][1], fltr)
+                     for prs, fltr in pairSets]
+            self.plotHeadGazeAndPointingFo(*pairs, yLim = False, 
+                                           title = 'HeadGazeFilters for '+tName)
+       # for pairs, fltr in pairSets:
+
+
     def mean_squared_error(self, y, y_hat): 
         return np.square(y - y_hat).mean()
 

@@ -95,7 +95,8 @@ class TrainingDataHandler(object):
         test = [yy for x, yy in test]
         return test, setRatio
 
-    def getExpDataAsDeltaFromAllPairsAsXY(self, pairs, setRatio = 0.6, testSet = None):
+    def getExpDataAsDeltaFromAllPairsAsXY(self, pairs, 
+                                          setRatio = 0.6, testSet = None):
         train, test = [], []
         for tName, (data, postData) in pairs.items():
             if not testSet is None:

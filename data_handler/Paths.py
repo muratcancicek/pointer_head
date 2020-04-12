@@ -7,9 +7,13 @@ TrailsDataFolder = TrailsFolder + 'data' + sep
 TrailVideosFolder = TrailsFolder + 'videos' + sep
 TrailSnapshotsFolder = TrailsFolder + 'snapshots' + sep
 SubjectsFolder = WhiteBallExpFolder + 'Subjects' + sep
-PostDataFolder = WhiteBallExpFolder + 'PostData_pnp_kf' + sep
+PostDataFolders = WhiteBallExpFolder + 'PostDataFolders' + sep
+PostDataFolder = PostDataFolders + 'PostData_pnp_kf' + sep
 AnalysisFolder = WhiteBallExpFolder + 'Analysis' + sep
 AnalysisCommonFolder = AnalysisFolder + 'Common' + sep
+
+PostDataFolderList = [PostDataFolders + 'PostData_pnp%s' % s + sep
+                      for s in ['Ransac', 'Ransac_kf', '', '_kf']]
 
 TF_Models_Folder = DATASETS_Folder + 'TF_Models' + sep
 TFMobileNetSSDFaceDetector_tf_model_path = TF_Models_Folder + \
