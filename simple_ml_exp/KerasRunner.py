@@ -1,6 +1,7 @@
 from .TrainingDataHandler import TrainingDataHandler
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
+from keras.optimizers import Adam
 from keras.models import Sequential
 from keras.layers import Dropout
 from keras.layers import Dense
@@ -14,8 +15,24 @@ import math
 
 
 class KerasRunner(object):
-    def __init__(self):
+    def __init__(self, dataHandler, modelType = 'FCN', trainDataHandler = None, 
+                 analyzer = None, lr = 0.001, epochs = 50, batch_size = 10):
         super()
+        self._dataHandler = dataHandler
+        self._trailsToTrain = []
+        self._trailsToTest = []
+        self._tdHandler = trainDataHandler
+        if self._tdHandler is None:
+            self._tdHandler = TrainingDataHandler()
+        self._analyzer = analyzer
+        if self._analyzer is None:
+            self._analyzer = Analyzer()
+        self._lr = lr
+        self._epochs = epochs
+        self._batch_size = batch_size 
+        self._modelType = modelType
+        self._model = None
+        self._optimizerType = None
 
     def getLSTMModel(self, x, y): 
         model = Sequential()
@@ -40,61 +57,83 @@ class KerasRunner(object):
         return model
 
     def runLSTMModel(self, x, y): 
-        regressor.fit(x, y, epochs = 100, batch_size = 32)
-    
+        pass
+
     def getFCNModel(self, x, y): 
-        neurons = [12, 24, 36, 48, 48, 36, 24, 12]
+        #neurons = [12, 24, 36, 48, 48, 36, 24, 12]
+        neurons = [128]*4
         model = Sequential()
         model.add(Dense(neurons[0], input_dim=x.shape[-1], activation='relu'))
         for n in neurons[1:]:
             #model.add(Dropout(0.2))
             model.add(Dense(n, activation = 'relu'))
         model.add(Dense(units = y.shape[-1]))
-        model.compile(loss='mse', optimizer='adam') #, metrics=['mse'])
+        adam = Adam(lr = self._lr)
+        self._optimizerType = 'Adam'
+        model.compile(loss='mse', optimizer= adam)
         return model
     
-    def runFCNExpOnPair(self, expData, epochs = 50, batch_size = 10): 
-        return y_hat
-    
-    def runFCNExpOnPair(self, data, postData, epochs = 40, batch_size = 40): 
-        handler = TrainingDataHandler()
+    def runFCNExpOnPair(self, data, postData): 
         expData = handler.getExpDataAsDeltaFromPair(postData, data)
         x_train, y_train, x_test, y_test = expData
-        model = self.getFCNModel(x_train, y_train)
-        model.fit(x_train, y_train, epochs = epochs, batch_size = batch_size)
-        y_hat = model.predict(x_test)
+        self._model = self.getFCNModel(x_train, y_train)
+        self._model.fit(x_train, y_train, self._batch_size, self._epochs)
+        y_hat = self._model.predict(x_test)
         s = int(0.6 * len(data))
         y_gd = data[s:]
-        y_r, y_hat_r = handler.rebuildResultsFromDelta(y_test,y_hat, y_gd[0])
+        y = self._tdHandler.rebuildResultsFromDelta(y_test, y_hat, y_gd[0])
+        y = y_r, y_hat_r
         analyzer = Analyzer()
-        analyzer.plotPrediction(y_r, y_hat_r, y_gd)
+        self._analyzer.plotPrediction(y_r, y_hat_r, y_gd)
 
-
-    def runFCNExpOnAllPairs(self, expData, epochs=500, batch_size=10): 
+    def runFCNExpOnAllPairs(self, expData): 
         trainData, testData = expData
-        model = self.getFCNModel(trainData[0][0], trainData[0][1])
+        self._model = self.getFCNModel(trainData[0][0], trainData[0][1])
         for i in range(epochs):
             print('OUTER_EPOCH %d/%d' % (i+1, epochs))
             random.shuffle(trainData)
             for x_train, y_train in trainData:
-                model.fit(x_train, y_train, epochs = 1, batch_size = batch_size)
+                self._model.fit(x_train, y_train, self._batch_size,self._epochs)
         for x_test, y_test in testData:
-            loss, accuracy = model.evaluate(x_test, y_test)
+            loss, accuracy = self._model.evaluate(x_test, y_test)
             print('Loss: %.4f' % (loss))
+         
+    def _getFancyTrailName(self, tName, padding = True): 
+        words = tName.split('_')
+        s = '    ' if padding else ''
+        if words[-1].isdigit():
+            s += '(Subject %s) %s' % (words[-1], '_'.join(words[:-1]))
+        else:
+            s += '%s' % tName
+        return s 
+
                    
-    def getExpResults(self, handler, y_test, y_hat, testSet, yList): 
+    def getExpResults(self, y_test, y_hat, yList): 
         results = []
-        for title, y_gd in zip(testSet, yList):
+        for title, y_gd in zip(self._trailsToTest, yList):
             i = y_gd.shape[0]
             y_sub, y_test = y_test[1:i], y_test[i:]
             y_hat_sub, y_hat = y_hat[1:i], y_hat[i:]
             y_r, y_hat_r = \
-                handler.rebuildResultsFromDelta(y_sub, y_hat_sub, y_gd[0])
+                self._tdHandler.rebuildResultsFromDelta(y_sub,y_hat_sub,y_gd[0])
+            title = self._getFancyTrailName(title, padding = False)
             results.append((y_r, y_hat_r, y_gd, title))
             #img = analyzer.getPredictionPlot(y_r, y_hat_r, y_gd, title, False)
         return results
-         
-    def getExpSummary(self, expData, y_hat, model, hist, t, epochs, batch_size): 
+    def _addTrailNamesToExpSummary(self, stringlist): 
+        def addFrom(l):
+            for tName in l:
+                s = self._getFancyTrailName(tName)
+                stringlist.append(s)
+            stringlist.append('')
+        stringlist.append('')
+        stringlist.append('Trails in the Train Set:')
+        addFrom(self._trailsToTrain)
+        stringlist.append('Trails in the Test Set:')
+        addFrom(self._trailsToTest)
+        return stringlist 
+
+    def getExpSummary(self, expData, y_hat, hist, t): 
         x_train, y_train, x_test, y_test, yList = expData
         t_mse, mse = hist.history['loss'][-1], np.square(y_test - y_hat).mean() 
         print()
@@ -108,37 +147,57 @@ class KerasRunner(object):
         tr, ts = x_train.shape[0], x_test.shape[0]
         ratText = 'Test/Train & TrainToAllRatio:' + \
             '%d/%d & %.2f' % (ts, tr, tr/(tr+ts))
-        epText = 'epochs = %d, batch_size = %d' % (epochs, batch_size)
+        epText = 'epochs = %d, batch_size = %d'%(self._epochs, self._batch_size)
+        lrText = 'Optimizer: %s, Learning Rate = %.5f' % \
+            (self._modelType, self._lr)
         t = ('%d sec' % t) if t < 60 else ('%d min %d sec' % (t/60, t%60))
         trText = 'Total Experiment Duration (incl. training): %s' % t
         stringlist = [exText, mText, ratText, '', 
-                      epText, trText, '', mseText, '']
-        model.summary(print_fn = lambda x: stringlist.append(x))
+                      epText, lrText, trText, '', mseText, '']
+        self._model.summary(print_fn = lambda x: stringlist.append(x))
         #short_model_summary = "\n".join(stringlist)
         #print(short_model_summary)
+        stringlist = self._addTrailNamesToExpSummary(stringlist)
         return stringlist
-           
-    def runFCNExpOnAllPairsAsXY(self, pairs, epochs = 1, batch_size = 10): 
-        start = time.time()
-        handler = TrainingDataHandler()
-        testSet = sorted(['vertical', 'random1', 'horizontal_part1_slow'])
-        expData = handler.getExpDataAsDeltaFromAllPairsAsXY(pairs, 1, testSet)
-        x_train, y_train, x_test, y_test, yList = expData
-        model = self.getFCNModel(x_train, y_train)
-        h = model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size)
-        y_hat = model.predict(x_test) 
-        results = self.getExpResults(handler, y_test, y_hat, testSet, yList)
-        t = time.time() - start
-        summary = self.getExpSummary(expData,y_hat,model,h,t,epochs,batch_size)
-        return results, summary
              
-    def runFCNExpOnSubject(self, subjId, handler, epochs = 1, batch_size = 10): 
-        if isinstance(subjId, int): subjId = str(subjId)
-        pairs = handler.getAllHeadPoseToPointingPairs(subjId)
-        results, text = self.runFCNExpOnAllPairsAsXY(pairs, epochs, batch_size)
-        analyzer = Analyzer()
-        sep = handler.Paths.sep
+    def saveFCNExpResults(self, results, subjId = None): 
+        results, text = results
+        sep = self._dataHandler.Paths.sep
         now = str(datetime.now())[:-7].replace(':', '-').replace(' ', '_')
-        name = 'FCNExpOnSubject_%s_%s.pdf' % (subjId, now)
-        path = handler.analysisFolder + subjId + sep + name
-        analyzer.savePredictionResultsAsPDF(results, path, [name, ''] + text)
+        if subjId:
+            name = 'FCNExpOnSubject_%s_%s.pdf' % (subjId, now)
+            path = self._dataHandler.analysisFolder + subjId + sep + name
+        else:
+            name = 'FCNExp_%s.pdf' % (now)
+            path = self._dataHandler.analysisCommonFolder + name
+        self._analyzer.savePredictionResultsAsPDF(results, path, [name,'']+text)
+             
+    def runFCNExpOnAllPairsAsXY(self, pairs): 
+        start = time.time()
+        expData = self._tdHandler.\
+            getExpDataAsDeltaFromAllPairsAsXY(pairs, 1, self._trailsToTest)
+        x_train, y_train, x_test, y_test, yList = expData
+        self._model = self.getFCNModel(x_train, y_train)
+        h = self._model.fit(x_train, y_train, self._batch_size, self._epochs)
+        y_hat = self._model.predict(x_test) 
+        results = self.getExpResults(y_test, y_hat, yList)
+        t = time.time() - start
+        summary = self.getExpSummary(expData, y_hat, h, t)
+        return results, summary
+           
+    def runFCNExpOnSubject(self, subjId): 
+        if isinstance(subjId, int): subjId = str(subjId)
+        pairs = self._dataHandler.getAllHeadPoseToPointingPairs(subjId)
+        self._trailsToTrain, self._trailsToTest = \
+            self._dataHandler.getDefaultTestTrailsForSubj(subjId)
+        results = self.runFCNExpOnAllPairsAsXY(pairs)
+        self.saveFCNExpResults(results, subjId)
+        
+    def runFCNExpOnSubjectList(self, sList): 
+        sList = [str(subjId) for subjId in sList]
+        pairs = self._tdHandler\
+            .getExpDataFromAllSubjectsAsPairs(self._dataHandler, sList)
+        self._trailsToTrain, self._trailsToTest = \
+            self._dataHandler.getDefaultTestTrailsForSubjList(sList)
+        results = self.runFCNExpOnAllPairsAsXY(pairs)
+        self.saveFCNExpResults(results)

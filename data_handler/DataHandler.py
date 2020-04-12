@@ -9,6 +9,7 @@ class DataHandler(object):
         self.dataFolder = dataFolder
         self.postDataFolder = postDataFolder
         self.analysisFolder = Paths.AnalysisFolder
+        self.analysisCommonFolder = Paths.AnalysisCommonFolder
         self.Paths = Paths
         self.trails = {}
         self.subjects = {}
@@ -246,3 +247,20 @@ class DataHandler(object):
         PDG = PostDataGenerator
         return {tName: (data, postData[:, PDG.pose_b_ind:PDG.pose_e_ind])
                for tName, (data, postData) in pairsSet.items()}
+            
+    def getDefaultTestTrailsForSubj(self, subjId): 
+        if isinstance(subjId, int): subjId = str(subjId)
+        test = ['infinity_slow', 'random1', 'horizontal_part1_slow']
+        train = [tName for tName in self.subjects[subjId]['ts']
+                if not tName in test]
+        return sorted(train), sorted(test)
+
+    def getDefaultTestTrailsForSubjList(self, sList): 
+        train0, test0 = self.getDefaultTestTrailsForSubj(sList[0])
+        test, train = [], []
+        for subjId in sList:
+            for t in train0:
+                train.append(t + '_' + subjId)
+            for t in test0:
+                test.append(t + '_' + subjId)
+        return sorted(train), sorted(test)

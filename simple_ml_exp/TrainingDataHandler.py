@@ -86,6 +86,15 @@ class TrainingDataHandler(object):
             yList.append(y)
         return X, Y, yList
     
+    def _getYTestAndRatio(self, y, yList, test, setRatio):
+        if len(test) == 0:
+            _, test = self.separateData(yList, setRatio)
+        else:
+            s = sum([yy.shape[0] for x, yy in test])
+            setRatio = 1 - s / y.shape[0]
+        test = [yy for x, yy in test]
+        return test, setRatio
+
     def getExpDataAsDeltaFromAllPairsAsXY(self, pairs, setRatio = 0.6, testSet = None):
         train, test = [], []
         for tName, (data, postData) in pairs.items():
@@ -97,11 +106,17 @@ class TrainingDataHandler(object):
             else:
                 train.append((postData, data))
         x, y, yList = self.mergeAllPairsAsXY(train + test)
-        if len(test) == 0:
-            _, test = self.separateData(yList, setRatio)
-        else:
-            test = [y for x, y in test]
-        s = sum([yy.shape[0] for yy in test])
-        r = 1 - s / y.shape[0]
-        expData = self.getExpDataAsDeltaFromPair(x, y, r)
+        test, setRatio = self._getYTestAndRatio(y, yList, test, setRatio)
+        y = y[:, :1]
+        test = [y[:, :1] for y in test]
+        expData = self.getExpDataAsDeltaFromPair(x, y, setRatio)
         return expData + (test, )
+
+    def getExpDataFromAllSubjectsAsPairs(self, handler, sList):
+        sList = [str(subjId) for subjId in sList]
+        mergedPairs = {}
+        for subjId in sList:
+            pairs = handler.getAllHeadPoseToPointingPairs(subjId)
+            for tName, (data, postData) in pairs.items():
+                mergedPairs[tName+'_'+subjId] = (data, postData) 
+        return mergedPairs

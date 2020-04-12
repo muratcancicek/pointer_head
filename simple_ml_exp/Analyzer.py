@@ -80,7 +80,10 @@ class Analyzer(object):
                                   plot = True, yLim = True): 
         fig = plt.figure(figsize = (21, 9))
         #fig = plt.figure(figsize = (63, 27), dpi = 200)
-        ax1 = fig.add_subplot(211)
+        if data[0][0].shape[-1] == 1:
+            ax1 = fig.add_subplot(111)
+        else:
+            ax1 = fig.add_subplot(211)
         ax1.set_title(title)
         if yLim:
             ax1.set_ylim(-960, 1920+960)
@@ -91,6 +94,9 @@ class Analyzer(object):
             l, = ax1.plot(d[:, 0])
             lines.append(l)
         ax1.legend(lines, [l for d, l in data])
+
+        if data[0][0].shape[-1] == 1:
+            return fig
 
         ax2 = fig.add_subplot(212)
         if yLim:
@@ -123,9 +129,12 @@ class Analyzer(object):
     def mean_squared_error(self, y, y_hat): 
         return np.square(y - y_hat).mean()
 
-    def printMSE(self, y, y_hat): 
-        mse = np.square(y - y_hat).mean() 
-        print('MSE: %.3f' % mse)
+    def root_mean_squared_error(self, y, y_hat): 
+        return np.sqrt(self.mean_squared_error(y, y_hat))
+
+    def printRMSE(self, y, y_hat): 
+        mse = root_mean_squared_error(self, y, y_hat)
+        print('RMSE: %.3f' % mse)
         return mse
     
     def get_img_from_fig(self, fig, dpi=125.88):
@@ -145,7 +154,7 @@ class Analyzer(object):
             g = [y_gd] + g
             t = ['y_gd'] + t
         plots = zip(g, t)
-        title += ' (mse=%.3f)' % self.mean_squared_error(y, y_hat)
+        title += ' (rmse=%.3f)' % self.root_mean_squared_error(y, y_hat)
         f = self.plotHeadGazeAndPointingFo(*plots, title = title, plot = plot)
         #plt.close()
         return f
