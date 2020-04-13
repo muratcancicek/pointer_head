@@ -30,9 +30,9 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     #data, postData = handler.getHeadPoseToPointingDataFor(subjId, tName)
     #runner.runFCNExpOnPair(data, postData)
     #runner.runFCNExpOnAllPairs(pairs)
-    #runner.runFCNExpOnSubject(subjId)
-    sList = [1, 2] # , 3
-    runner.runFCNExpOnSubjectList(sList)
+    runner.runFCNExpOnSubject(subjId)
+    #sList = [1, 2] # , 3
+    #runner.runFCNExpOnSubjectList(sList)
 
      
 def main(DataHandler):
