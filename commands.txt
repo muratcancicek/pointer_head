@@ -11,4 +11,11 @@ cvLab2019
 
 source ~/pyenvs/tf36/bin/activate
 
+tmux attach -t 0  
+
 ssh -N -f -L 3400:localhost:3400 cicekm@cvlab1.soe.ucsc.edu
+
+python -c "import tensorflow as tf; tf.config.list_physical_devices(device_type=None)"
+
+python -c "import tensorflow as tf; tf.test.is_gpu_available()"
+python -c "import tensorflow as tf; print(9000, tf.test.gpu_device_name())"

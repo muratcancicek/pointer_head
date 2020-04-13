@@ -26,7 +26,7 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     f = 'C:\\cStorage\\Datasets\\WhiteBallExp\\PostData_pnp_kf\\'
     handler = DataHandler(postDataFolder = f) 
 
-    runner = KerasRunner(handler, epochs = 60, batch_size = 30)
+    runner = KerasRunner(handler, epochs = 6, batch_size = 30)
     #data, postData = handler.getHeadPoseToPointingDataFor(subjId, tName)
     #runner.runFCNExpOnPair(data, postData)
     #runner.runFCNExpOnAllPairs(pairs)
@@ -37,8 +37,8 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
      
 def main(DataHandler):
    #testSimpleML0(DataHandler)
-   #testKeras(DataHandler)
-   testCorrelation(DataHandler)
+   testKeras(DataHandler)
+   #testCorrelation(DataHandler)
 
 if __name__ == '__main__':
     raise NotImplementedError
