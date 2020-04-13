@@ -4,7 +4,7 @@ sep = os.sep
 if os.name == 'nt':
     DATASETS_Folder = 'C:\\cStorage\\Datasets' + sep
 elif os.name == 'posix':
-    DATASETS_Folder = '~/sets' + sep
+    DATASETS_Folder = '/home/cicekm/sets' + sep
 WhiteBallExpFolder = DATASETS_Folder + 'WhiteBallExp' + sep
 MergedVideosFolder = WhiteBallExpFolder + 'MergedVideos' + sep
 TrailsFolder = WhiteBallExpFolder + 'trails' + sep
