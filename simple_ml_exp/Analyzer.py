@@ -78,8 +78,10 @@ class Analyzer(object):
 
     def plotHeadGazeAndPointingFo(self, *data, title = 'Plot', 
                                   plot = True, yLim = True): 
-        fig = plt.figure(figsize = (21, 9))
+        fig = plt.figure(figsize = (21, 18))
         #fig = plt.figure(figsize = (63, 27), dpi = 200)
+        colors = ['g', 'r', 'y', 'b', 'c', 'm', 'y']
+        types = ['-', '-', '--', '-', '-.', ':', '-.', ':']
         if data[0][0].shape[-1] == 1:
             ax1 = fig.add_subplot(111)
         else:
@@ -90,8 +92,8 @@ class Analyzer(object):
         ax1.set_ylabel('X')
         #ax1.set_xlim(200, 300)
         lines = []
-        for d, _ in data:
-            l, = ax1.plot(d[:, 0])
+        for i, (d, _) in enumerate(data):
+            l, = ax1.plot(d[:, 0], ls=types[i], c=colors[i])
             lines.append(l)
         ax1.legend(lines, [l for d, l in data])
 
@@ -104,19 +106,42 @@ class Analyzer(object):
         #ax2.set_xlim(200, 300)
         ax2.set_ylabel('Y')
         lines = []
-        for d, _ in data:
-            l, = ax2.plot(d[:, 1])
+        for i, (d, _) in enumerate(data):
+            l, = ax2.plot(d[:, 1], ls=types[i], c=colors[i])
             lines.append(l)
         ax2.legend(lines, [l for d, l in data])
         if plot:
             plt.show()
         return fig
     
+    def getKalmanFiltered(self, data):
+        #mf = [0] * data.shape[-1]
+        #cf = [0.1] * data.shape[-1]
+        #kf = []
+        newData = np.zeros_like(data)
+        #for m, c in zip(mf, cf):
+        #    kf.append(KalmanFilter(initial_state_mean=m,
+        #                           initial_state_covariance=c))
+        #for i in range(len(data)):
+        #    for e in range(len(data[i])):
+        #        mf[e], cf[e] = kf[e].filter_update(mf[e], cf[e], data[i][e])
+        #        newData[i][e] = mf[e]
+        #kf kf= 
+        newData[:, 0] = KalmanFilter().em(data[:, 0]).smooth(data[:, 0])[0][:, 0]
+        newData[:, 1] = KalmanFilter().em(data[:, 1]).smooth(data[:, 1])[0][:, 0]
+        print(newData.shape)
+        return newData
+    
     def plotHeadGazeFiltersFor(self, handlers, subjId, tName):
+        last = handlers[-2][1].getHeadGazeToPointingDataFor(subjId, tName) 
+        
+        target, last = (last[0], 'Target'), (last[1], handlers[-2][0])
         pairs = [(h.getHeadGazeToPointingDataFor(subjId, tName)[1], fltr)
-                 for fltr, h in handlers]
+                 for fltr, h in handlers[:-2]+[handlers[-1]]] + [last]
+        kFiltered = (self.getKalmanFiltered(last[0]), 'FilteredGaze')
+        pairs = [target] + pairs + [kFiltered]
         self.plotHeadGazeAndPointingFo(*pairs, yLim = False, 
-                                       title = 'HeadGazeFilters')
+                                       title = 'HeadGazeFilters for '+tName)
         
     def plotHeadGazeFiltersForSubj(self, handlers, subjId):
         pairSets = [(h.getAllHeadPoseToPointingPairs(subjId), fltr)
@@ -127,7 +152,6 @@ class Analyzer(object):
                      for prs, fltr in pairSets]
             self.plotHeadGazeAndPointingFo(*pairs, yLim = False, 
                                            title = 'HeadGazeFilters for '+tName)
-       # for pairs, fltr in pairSets:
 
 
     def mean_squared_error(self, y, y_hat): 

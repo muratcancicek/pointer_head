@@ -1,8 +1,14 @@
-ssh muratcan@cvlabgpu.soe.ucsc.edu
-ssh muratcan@73.189.180.205
-cvLab2019
+
 C:\cStorage\Program_Files\python_envs\tf36\Scripts\activate
 cd C:\Users\MSI2\Documents\Offline_Projects\pointer_head\
 python run_pointer_head_pretests.py
 
 ssh muratcan@cvlabgpu.soe.ucsc.edu
+ssh muratcan@73.189.180.205
+
+cicekm@cvlab1.soe.ucsc.edu
+cvLab2019
+
+source ~/pyenvs/tf36/bin/activate
+
+ssh -N -f -L 3400:localhost:3400 cicekm@cvlab1.soe.ucsc.edu

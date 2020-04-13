@@ -16,12 +16,9 @@ def testCorrelation(DataHandler, subjId = 1, tName = 'infinity'):
     folders = DataHandler.Paths.PostDataFolderList
     fltr = lambda f: '_'.join(f.split('_')[1:])[:-1]
     handlers = [(fltr(f), DataHandler(postDataFolder = f)) for f in folders]
-    pairs = [(h.getHeadGazeToPointingDataFor(subjId, tName)[1], f)
-             for f, h in handlers]
-    print([f for _, f in pairs])
     analyzer = Analyzer()
-    #analyzer.plotHeadGazeFiltersFor(handlers, subjId, tName)
-    analyzer.plotHeadGazeFiltersForSubj(handlers, subjId)
+    analyzer.plotHeadGazeFiltersFor(handlers, subjId, tName)
+    #analyzer.plotHeadGazeFiltersForSubj(handlers, subjId)
     
 
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
