@@ -37,7 +37,13 @@ class DataHandler(object):
             if len(values) < len(keys):
                 values.append(0)
             for i in range(len(keys)):
-                summary[keys[i]].append(int(values[i]) if i != 0 else values[i])
+                try: 
+                    summary[keys[i]].append(int(values[i]) 
+                                            if i != 0 else values[i])
+                except ValueError:
+                    summary[keys[i]].append(float(values[i]) 
+                                            if i != 0 else values[i])
+
         self.trails[tName]['summary'] = summary
         return self.trails[tName]['summary']
     
@@ -51,6 +57,7 @@ class DataHandler(object):
         return self.trails[tName]['data']
     
     def readTrail(self, tName):
+        print(tName)
         if '.csv' != tName[-4:]: 
                 tName += '.csv'
         file = open(self.dataFolder + tName, 'r')
@@ -63,7 +70,7 @@ class DataHandler(object):
 
     def getTrail(self, tName):
         if '.csv' == tName[-4:]: 
-            tName = tName[-4:]
+            tName = tName[:-4]
         if tName in self.trails:
             return self.trails[tName]
         else:
@@ -72,7 +79,8 @@ class DataHandler(object):
     def readAllTrails(self):
         trailList = os.listdir(self.dataFolder)
         for fileName in trailList:
-            self.getTrail(fileName)
+            if 'summaries' != fileName[:9]:
+                self.getTrail(fileName)
         return self.trails
         
     def addSubject(self, id):
