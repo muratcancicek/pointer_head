@@ -57,7 +57,6 @@ class DataHandler(object):
         return self.trails[tName]['data']
     
     def readTrail(self, tName):
-        print(tName)
         if '.csv' != tName[-4:]: 
                 tName += '.csv'
         file = open(self.dataFolder + tName, 'r')
@@ -101,13 +100,16 @@ class DataHandler(object):
     def __findSubjectVideoName(self, id, tName):
         subjectVideoNames = [s for s in self.subjects[id]['VideoList']
                             if tName == self.__getSubjectVideoTrailName(id, s)]
-        return subjectVideoNames[-1]
+        if len(subjectVideoNames) > 0:
+            return subjectVideoNames[-1]
+        else:
+            return 'NotExit'
 
     def _readSubjectTrail(self, id, tName):
         self.trails[tName] = self.getTrail(tName)
-        subjectVideoName = self.__findSubjectVideoName(id, tName)
         self.subjects[id]['ts'][tName] = {}
         self.subjects[id]['ts'][tName]['t'] = self.trails[tName]
+        subjectVideoName = self.__findSubjectVideoName(id, tName)
         subjectVideoPath = self.subjects[id]['Folder'] + subjectVideoName
         self.subjects[id]['ts'][tName]['VideoPath'] = subjectVideoPath
         return self.subjects[id]['ts'][tName]
@@ -197,9 +199,11 @@ class DataHandler(object):
     
     def loadAllPostDataOfSubject(self, id):
         if isinstance(id, int): id = str(id)
-        self.readAllSubjectTrails(id)
+        self.readAllTrails()
+        self.addSubject(id)
         postDataSet = {}
-        for tName in self.subjects[id]['ts']:
+        for tName in self.trails:
+            self._readSubjectTrail(id, tName)
             postDataSet[tName] = self.loadPostDataOfSubjectVideo(id, tName)
         return postDataSet
     

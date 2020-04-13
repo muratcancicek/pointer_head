@@ -137,7 +137,8 @@ class Analyzer(object):
         
         target, last = (last[0], 'Target'), (last[1], handlers[-2][0])
         pairs = [(h.getHeadGazeToPointingDataFor(subjId, tName)[1], fltr)
-                 for fltr, h in handlers[:-2]+[handlers[-1]]] + [last]
+                 for fltr, h in handlers[:-2]+[handlers[-1]]]
+        pairs = pairs[:-1] + [last, pairs[-1]]
         kFiltered = (self.getKalmanFiltered(last[0]), 'FilteredGaze')
         pairs = [target] + pairs + [kFiltered]
         self.plotHeadGazeAndPointingFo(*pairs, yLim = False, 

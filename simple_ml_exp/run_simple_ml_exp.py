@@ -6,10 +6,11 @@ import math
 
 def testSimpleML0(DataHandler, subjId = 1, tName = 'infinity'):
     handler = DataHandler(readAllDataNow = False) 
-    #pairs = handler.getAllHeadPoseToPointingPairs(subjId)
-    data, postData = handler.getHeadGazeToPointingDataFor(1, 'infinity')
-    analyzer = Analyzer()
-    analyzer.plotHeadGazeAndPointingFor(data, postData)
+    pairs = handler.getAllHeadPoseToPointingPairs(subjId)
+    print(len(pairs))
+    #data, postData = handler.getHeadGazeToPointingDataFor(1, 'infinity')
+    #analyzer = Analyzer()
+    #analyzer.plotHeadGazeAndPointingFor(data, postData)
 
 
 def testCorrelation(DataHandler, subjId = 1, tName = 'infinity'):
