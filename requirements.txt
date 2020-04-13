@@ -1,8 +1,8 @@
-opencv_python==4.0.0.21
-numpy==1.14.5
-Keras==2.2.4
-matplotlib==3.0.2
-Pillow==7.1.1
-pykalman==0.9.5
-scikit_learn==0.22.2.post1
-tensorflow==2.1.0
+opencv_python>=4.0.0.21
+numpy>=1.14.5
+Keras
+matplotlib>=3.0.2
+Pillow>=7.1.1
+pykalman>=0.9.5
+scikit_learn>=0.22.2.post1
+tensorflow>=2.1.0

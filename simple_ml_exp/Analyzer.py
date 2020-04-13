@@ -75,41 +75,37 @@ class Analyzer(object):
         ax2.plot(pointing[:, 1])
         ax2.plot(gaze[:, 1])
         plt.show()
+        
+    def plotAx(self, ax1, data, ind, yLabel, yLim = None): 
+        colors = ['g', 'r', 'y', 'b', 'c', 'm', 'y']
+        types = ['-', '-', '--', '-', '-.', ':', '-.', ':']
+        ax1.set_ylabel(yLabel)
+        if yLim:
+            ax1.set_ylim(*yLim)
+        #ax1.set_xlim(200, 300)
+        lines = []
+        for i, (d, _) in enumerate(data):
+            l, = ax1.plot(d[:, ind], ls=types[i], c=colors[i])
+            lines.append(l)
+        mse = lambda d: self.root_mean_squared_error(data[0][0][ind], d) 
+        data = [data[0]] + [(d, l+' (RMSE: %.3f)' % mse(d)) for d,l in data[1:]]
+        ax1.legend(lines, [l for d, l in data])
+
 
     def plotHeadGazeAndPointingFo(self, *data, title = 'Plot', 
                                   plot = True, yLim = True): 
-        fig = plt.figure(figsize = (21, 18))
-        #fig = plt.figure(figsize = (63, 27), dpi = 200)
-        colors = ['g', 'r', 'y', 'b', 'c', 'm', 'y']
-        types = ['-', '-', '--', '-', '-.', ':', '-.', ':']
+        fig = plt.figure(dpi = 120, figsize = (21, 9)) # (42, 18)) # 
         if data[0][0].shape[-1] == 1:
             ax1 = fig.add_subplot(111)
         else:
             ax1 = fig.add_subplot(211)
         ax1.set_title(title)
-        if yLim:
-            ax1.set_ylim(-960, 1920+960)
-        ax1.set_ylabel('X')
-        #ax1.set_xlim(200, 300)
-        lines = []
-        for i, (d, _) in enumerate(data):
-            l, = ax1.plot(d[:, 0], ls=types[i], c=colors[i])
-            lines.append(l)
-        ax1.legend(lines, [l for d, l in data])
-
+        self.plotAx(ax1, data, 0, 'X', (-960, 1920+960) if yLim else None)
         if data[0][0].shape[-1] == 1:
             return fig
 
         ax2 = fig.add_subplot(212)
-        if yLim:
-            ax2.set_ylim(-540, 1080+540)
-        #ax2.set_xlim(200, 300)
-        ax2.set_ylabel('Y')
-        lines = []
-        for i, (d, _) in enumerate(data):
-            l, = ax2.plot(d[:, 1], ls=types[i], c=colors[i])
-            lines.append(l)
-        ax2.legend(lines, [l for d, l in data])
+        self.plotAx(ax2, data, 1, 'Y', (-540, 1080+540) if yLim else None)
         if plot:
             plt.show()
         return fig
@@ -129,30 +125,32 @@ class Analyzer(object):
         #kf kf= 
         newData[:, 0] = KalmanFilter().em(data[:, 0]).smooth(data[:, 0])[0][:, 0]
         newData[:, 1] = KalmanFilter().em(data[:, 1]).smooth(data[:, 1])[0][:, 0]
-        print(newData.shape)
         return newData
+
+    def saveHeadGazeFilterPlotssAsPDF(self, pairs, tName, path, plot = False):
+        f = self.plotHeadGazeAndPointingFo(*pairs, yLim = False, plot = plot,
+                                           title = 'HeadGazeFilters for '+tName)
+        img = self.get_img_from_fig(f)
+        mergedImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pdf = Image.fromarray(mergedImg)
+        pdf.save(path)
     
-    def plotHeadGazeFiltersFor(self, handlers, subjId, tName):
+    def plotHeadGazeFiltersFor(self, handlers, subjId, tName, path):
         last = handlers[-2][1].getHeadGazeToPointingDataFor(subjId, tName) 
-        
         target, last = (last[0], 'Target'), (last[1], handlers[-2][0])
         pairs = [(h.getHeadGazeToPointingDataFor(subjId, tName)[1], fltr)
                  for fltr, h in handlers[:-2]+[handlers[-1]]]
         pairs = pairs[:-1] + [last, pairs[-1]]
         kFiltered = (self.getKalmanFiltered(last[0]), 'FilteredGaze')
         pairs = [target] + pairs + [kFiltered]
-        self.plotHeadGazeAndPointingFo(*pairs, yLim = False, 
-                                       title = 'HeadGazeFilters for '+tName)
-        
-    def plotHeadGazeFiltersForSubj(self, handlers, subjId):
-        pairSets = [(h.getAllHeadPoseToPointingPairs(subjId), fltr)
-                 for fltr, h in handlers]
-        trails = [tName for tName, _ in pairSets[0][0].items()]
+        self.saveHeadGazeFilterPlotssAsPDF(pairs, tName, path, plot = False)
+
+    def plotHeadGazeFiltersForSubj(self, handlers, subjId, Paths):
+        trails = handlers[0][1].readAllTrails()
         for tName in trails:
-            pairs = [(prs[tName][1], fltr)
-                     for prs, fltr in pairSets]
-            self.plotHeadGazeAndPointingFo(*pairs, yLim = False, 
-                                           title = 'HeadGazeFilters for '+tName)
+            name = '%s_%s_HeadGazeFilters.pdf' % (tName, subjId)
+            path = Paths.HeadGazeGraphsFolder + subjId + Paths.sep + name
+            self.plotHeadGazeFiltersFor(handlers, subjId, tName, path)
 
 
     def mean_squared_error(self, y, y_hat): 
@@ -162,7 +160,7 @@ class Analyzer(object):
         return np.sqrt(self.mean_squared_error(y, y_hat))
 
     def printRMSE(self, y, y_hat): 
-        mse = root_mean_squared_error(self, y, y_hat)
+        mse = self.root_mean_squared_error(y, y_hat)
         print('RMSE: %.3f' % mse)
         return mse
     

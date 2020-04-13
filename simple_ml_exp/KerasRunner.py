@@ -30,7 +30,7 @@ def mask_unused_gpus(leave_unmasked=1):
   except Exception as e:
     print('"nvidia-smi" is probably not installed. GPUs are not masked', e)
 
-mask_unused_gpus(2)
+#mask_unused_gpus(2)
 
 class KerasRunner(object):
     def __init__(self, dataHandler, modelType = 'FCN', trainDataHandler = None, 
@@ -184,7 +184,8 @@ class KerasRunner(object):
         now = str(datetime.now())[:-7].replace(':', '-').replace(' ', '_')
         if subjId:
             name = 'FCNExpOnSubject_%s_%s.pdf' % (subjId, now)
-            path = self._dataHandler.analysisFolder + subjId + sep + name
+            path = self._dataHandler.Paths.TrainingResultsFolder \
+                + subjId + sep + name
         else:
             name = 'FCNExp_%s.pdf' % (now)
             path = self._dataHandler.analysisCommonFolder + name

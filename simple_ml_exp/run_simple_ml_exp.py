@@ -14,12 +14,16 @@ def testSimpleML0(DataHandler, subjId = 1, tName = 'infinity'):
 
 
 def testCorrelation(DataHandler, subjId = 1, tName = 'infinity'):
-    folders = DataHandler.Paths.PostDataFolderList
+    if isinstance(subjId, int): subjId = str(subjId)
+    Paths = DataHandler.Paths
+    folders = Paths.PostDataFolderList
     fltr = lambda f: '_'.join(f.split('_')[1:])[:-1]
     handlers = [(fltr(f), DataHandler(postDataFolder = f)) for f in folders]
     analyzer = Analyzer()
-    analyzer.plotHeadGazeFiltersFor(handlers, subjId, tName)
-    #analyzer.plotHeadGazeFiltersForSubj(handlers, subjId)
+    name = '%s_%s_HeadGazeFilters.pdf' % (tName, subjId)
+    path = Paths.HeadGazeGraphsFolder + subjId + Paths.sep + name
+   #analyzer.plotHeadGazeFiltersFor(handlers, subjId, tName, path)
+    analyzer.plotHeadGazeFiltersForSubj(handlers, subjId, Paths)
     
 
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
@@ -36,8 +40,8 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
      
 def main(DataHandler):
    #testSimpleML0(DataHandler)
-   testKeras(DataHandler)
-   #testCorrelation(DataHandler)
+   #testKeras(DataHandler)
+   testCorrelation(DataHandler)
 
 if __name__ == '__main__':
     raise NotImplementedError
