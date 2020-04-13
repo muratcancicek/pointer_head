@@ -23,9 +23,7 @@ def testCorrelation(DataHandler, subjId = 1, tName = 'infinity'):
 
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
-    f = 'C:\\cStorage\\Datasets\\WhiteBallExp\\PostData_pnp_kf\\'
-    handler = DataHandler(postDataFolder = f) 
-
+    handler = DataHandler() 
     runner = KerasRunner(handler, epochs = 6, batch_size = 30)
     #data, postData = handler.getHeadPoseToPointingDataFor(subjId, tName)
     #runner.runFCNExpOnPair(data, postData)
