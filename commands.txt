@@ -1,7 +1,6 @@
+C:\cStorage\Program_Files\python_envs\torch\Scripts\activate
 
 C:\cStorage\Program_Files\python_envs\tf36\Scripts\activate
-
-C:\cStorage\Program_Files\python_envs\krs2\Scripts\activate
 cd C:\Users\MSI2\Documents\Offline_Projects\pointer_head\
 python run_pointer_head_pretests.py
 

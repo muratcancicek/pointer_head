@@ -100,12 +100,14 @@ class Analyzer(object):
         else:
             ax1 = fig.add_subplot(211)
         ax1.set_title(title)
-        self.plotAx(ax1, data, 0, 'X', (-960, 1920+960) if yLim else None)
+        self.plotAx(ax1, data, 0, 'X', (0,1920) if yLim else None)
+        #self.plotAx(ax1, data, 0, 'X', (-960, 1920+960) if yLim else None)
         if data[0][0].shape[-1] == 1:
             return fig
 
         ax2 = fig.add_subplot(212)
-        self.plotAx(ax2, data, 1, 'Y', (-540, 1080+540) if yLim else None)
+        self.plotAx(ax2, data, 1, 'Y', (0,1080) if yLim else None)
+        #self.plotAx(ax2, data, 1, 'Y', (-540, 1080+540) if yLim else None)
         if plot:
             plt.show()
         return fig
@@ -128,14 +130,14 @@ class Analyzer(object):
         return newData
 
     def saveHeadGazeFilterPlotssAsPDF(self, pairs, tName, path, plot = False):
-        f = self.plotHeadGazeAndPointingFo(*pairs, yLim = False, plot = plot,
+        f = self.plotHeadGazeAndPointingFo(*pairs, yLim = True, plot = plot,
                                            title = 'HeadGazeFilters for '+tName)
         img = self.get_img_from_fig(f)
         mergedImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         pdf = Image.fromarray(mergedImg)
         pdf.save(path)
     
-    def plotHeadGazeFiltersFor(self, handlers, subjId, tName, path):
+    def getPairsOfHeadGazeFiltersFor(self, handlers, subjId, tName):
         last = handlers[-2][1].getHeadGazeToPointingDataFor(subjId, tName) 
         target, last = (last[0], 'Target'), (last[1], handlers[-2][0])
         pairs = [(h.getHeadGazeToPointingDataFor(subjId, tName)[1], fltr)
@@ -143,6 +145,13 @@ class Analyzer(object):
         pairs = pairs[:-1] + [last, pairs[-1]]
         kFiltered = (self.getKalmanFiltered(last[0]), 'FilteredGaze')
         pairs = [target] + pairs + [kFiltered]
+        #pairs = [(d[:100], f) for d, f in pairs]
+        return pairs
+    
+    def plotHeadGazeFiltersFor(self, handlers, subjId, tName, path):
+        pairs = self.getPairsOfHeadGazeFiltersFor(handlers, subjId, tName)
+        #f = self.plotHeadGazeAndPointingFo(*pairs, yLim = True, plot = True,
+        #                                   title = 'HeadGazeFilters for '+tName)
         self.saveHeadGazeFilterPlotssAsPDF(pairs, tName, path, plot = False)
 
     def plotHeadGazeFiltersForSubj(self, handlers, subjId, Paths):
@@ -163,7 +172,43 @@ class Analyzer(object):
         mse = self.root_mean_squared_error(y, y_hat)
         print('RMSE: %.3f' % mse)
         return mse
-    
+
+    def getHeadGazeFilterRMSEsFor(self, handlers, subjId, tName): 
+        pairs = self.getPairsOfHeadGazeFiltersFor(handlers, subjId, tName)
+        mse = lambda y, y_hat: self.root_mean_squared_error(y, y_hat)
+        target = pairs[0][0]
+        pairs = [(mse(target[:, 0], d[:, 0]), mse(target[:, 1], d[:, 1]), f)
+                for d, f in pairs[1:]]
+        titles, values = ['trails'], []
+        for x, y, f in pairs:
+            titles.extend((f+'_X', f+'_Y', f+'_Mean'))
+            values.extend((x, y, (x + y)/2))
+        titles = ','.join(titles)
+        values = ','.join([tName] + ['%.2f' % v for v in values])
+        return titles, values
+
+    def getHeadGazeFilterRMSEsForSubj(self, handlers, subjId): 
+        trails = handlers[0][1].readAllTrails()
+        e = lambda tName:self.getHeadGazeFilterRMSEsFor(handlers, subjId, tName)
+        rmses = [e(tName) for tName in trails]
+        titles = rmses[0][0]
+        values = '\n'.join([v for t, v in rmses])
+        return titles, values
+
+    def getHeadGazeFilterCorrelFor(self, target, gaze, tName): 
+        xCorr, yCorr = self.get2DCorrelation(target, gaze)
+        titles = ','.join(['trails', 'X_Corr', 'Y_Corr', 'Mean_Corr'])
+        values = ['%.2f' % v for v in (xCorr, yCorr, (xCorr + yCorr)/2)]
+        values = ','.join([tName] + values)
+        return titles, values
+
+    def getHeadGazeFilterCorrelForSubj(self, pairs): 
+        corrs = [self.getHeadGazeFilterCorrelFor(target, gaze, tName)
+                for tName, (target, gaze) in pairs.items()]
+        titles = corrs[0][0]
+        values = '\n'.join([v for t, v in corrs])
+        return titles, values
+
     def get_img_from_fig(self, fig, dpi=125.88):
         buf = io.BytesIO()
         plt.savefig(buf, format="png", dpi=dpi)
