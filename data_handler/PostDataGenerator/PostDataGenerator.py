@@ -4,6 +4,7 @@ from .InputEstimators.Scene3DVisualizer import Scene3DVisualizer
 from .InputEstimators.PoseEstimators import PoseEstimator, HeadGazer
 #from .InputEstimators.LandmarkDetectors import LandmarkDetector
 #from .InputEstimators.FaceDetectors import CVFaceDetector
+from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from .. import Paths
 import numpy as np
@@ -147,3 +148,39 @@ class PostDataGenerator(object):
                                                     streamer, self.__estimator,
                                                     trailStreamer)
         return
+    
+    def getFakerPose(self, x):
+        diff = x[1:] - x[:-1]
+        diff *= np.random.rand(*(diff.shape)) #+ 0.1
+        x_new = np.zeros_like(x)
+        x_new[0] = x[0]
+        for i in range(diff.shape[0]):
+            x_new[i+1] = x_new[i] + diff[i]
+        x_scaled = MinMaxScaler(feature_range = (0, 1)).fit_transform(x)
+        x_new_scaled = MinMaxScaler(feature_range = (0, 1)).fit_transform(x_new)
+        rmse = np.sqrt(np.square(x_scaled - x_new_scaled).mean())
+        #print(rmse) 
+        if rmse < 0.05 or rmse > 0.09:
+            try:
+                return self.getFakerPose(x)
+            except RecursionError:
+                return x_new
+        return x_new
+
+    def regenerateGazeFromPose(self, pose):
+        gaze = np.zeros((pose.shape[0], 2), pose.dtype)
+        for i in range(len(pose)):
+            self.__estimator.poseCalculator.updatePose(pose[i])
+            gaze[i] = \
+                self.__estimator.poseCalculator.calculateHeadGazeProjection()
+        return gaze
+
+    def regenerateFakerPostData(self, postData):
+        PDG = PostDataGenerator
+        pose = postData[:, PDG.pose_b_ind:PDG.pose_e_ind]
+        pose_fake = self.getFakerPose(pose)
+        gaze_fake = self.regenerateGazeFromPose(pose_fake)
+        postData_fake = postData.copy()
+        postData_fake[:, PDG.gaze_b_ind:PDG.gaze_e_ind] = gaze_fake
+        postData_fake[:, PDG.pose_b_ind:PDG.pose_e_ind] = pose_fake
+        return postData_fake

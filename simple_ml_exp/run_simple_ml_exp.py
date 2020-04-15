@@ -2,7 +2,7 @@ from .TrainingDataHandler import TrainingDataHandler
 from matplotlib import pyplot as plt
 from .KerasRunner import KerasRunner
 from .Analyzer import Analyzer
-import math
+import os, math, numpy as  np
 
 def testSimpleML0(DataHandler, subjId = 1, tName = 'infinity'):
     handler = DataHandler(readAllDataNow = False) 
@@ -41,38 +41,66 @@ def testPlottingFilters0(DataHandler, subjId = 1, tName = 'infinity'):
     handlers = get4Handlers(DataHandler, subjId)
     Paths = DataHandler.Paths
     analyzer = Analyzer()
-    name = '%s_%s_HeadGazeFilters.pdf' % (tName, subjId)
+    name = '%s_%s_HeadGazeFilters0.pdf' % (tName, subjId)
     path = Paths.HeadGazeGraphsFolder + subjId + Paths.sep + name
     analyzer.plotHeadGazeFiltersFor(handlers, subjId, tName, path)
     #analyzer.plotHeadGazeFiltersForSubj(handlers, subjId, Paths)
 
 def testPlottingFilters(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
-    handler = DataHandler() 
     Paths = DataHandler.Paths
+    handler = DataHandler(postDataFolder = Paths.PostDataFolders + 'PostData_pnp\\') 
     analyzer = Analyzer()
     target, headGaze = handler.getHeadGazeToPointingDataFor(subjId, tName)
-    b = 150
-    data = [(target[b:], 'Target'), (headGaze[b:], 'HeadGaze')]
-    analyzer.plotHeadGazeAndPointingFo(*data)
+    b = 0
+    data = [(target[b+150:], 'Target'), (headGaze[b:], 'HeadGaze')]
+    analyzer.plotHeadGazeAndPointingFo(*data,
+                                       title=tName+'_'+subjId, yLim = True)
+    return newPose
 
+def testNoise(DataHandler, subjId = 1, tName = 'infinity'):
+    handler = DataHandler() 
+    #target, headPose = handler.getHeadPoseToPointingDataFor(subjId, tName)
+    start = int(str(subjId)*3+'0')
+    fakeIDs = [str(i) for i in range(start, start+10)]
+    for f in fakeIDs:
+        handler.saveAllFakePostDataForSubject(subjId, f)
+    #handler.saveFakePostDataForSubject(subjId, fakeId, tName)
+    #fakeId = '2224'
+    #target, headGaze = handler.getHeadGazeToPointingDataFor(subjId, tName)
+    #_, headGaze2 = handler.getHeadGazeToPointingDataFor(fakeId, tName)
+    #analyzer = Analyzer()
+    #analyzer.printRMSE(headGaze[:, 0], headGaze2[:, 0])
+    #analyzer.printRMSE(headGaze[:, 1], headGaze2[:, 1])
+    analyzer.plotPrediction(headGaze, headGaze2, target)
+
+def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
+    if isinstance(subjId, int): subjId = str(subjId)
+    sList = os.listdir(DataHandler.Paths.PostDataFolder) # ['1', '2', '3'] # 
+    handler = DataHandler() 
+    pairs = [(handler.getHeadGazeToPointingDataFor(s, tName)[1], s) for s in sList]
+    #handler = DataHandler() [:5]
+    analyzer = Analyzer()
+    analyzer.plotHeadGazeAndPointingFo(*pairs, yLim = False)
+     
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handler = DataHandler() 
-    runner = KerasRunner(handler, epochs = 6, batch_size = 30)
+    runner = KerasRunner(handler, epochs = 6, batch_size = 300)
     #data, postData = handler.getHeadPoseToPointingDataFor(subjId, tName)
     #runner.runFCNExpOnPair(data, postData)
     #runner.runFCNExpOnAllPairs(pairs)
-    runner.runFCNExpOnSubject(subjId)
-    #sList = [1, 2] # , 3
-    #runner.runFCNExpOnSubjectList(sList)
-
-     
+    #runner.runFCNExpOnSubject(subjId)
+    sList = [1, 2, 3] ## 
+    runner.runFCNExpOnSubjectList(sList)
+    
 def main(DataHandler):
    #testSimpleML0(DataHandler)
-   #testKeras(DataHandler)
-   testCorrelation(DataHandler, 1)
-   #testPlottingFilters(DataHandler, 3, 'random4')
+   #testKeras(DataHandler, 2)
+   #testCorrelation(DataHandler, 1)'random4''vertical_part1_slow''random4'
+   #testPlottingFilters(DataHandler, 3, 'random4')'infinity', 'zigzag_part1_slow'
+   #testNoise(DataHandler, 1)
+   testPlottingAllSubjects(DataHandler, 3, 'zigzag')
 
 if __name__ == '__main__':
     raise NotImplementedError

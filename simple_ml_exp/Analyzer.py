@@ -77,8 +77,8 @@ class Analyzer(object):
         plt.show()
         
     def plotAx(self, ax1, data, ind, yLabel, yLim = None): 
-        colors = ['g', 'r', 'y', 'b', 'c', 'm', 'y']
-        types = ['-', '-', '--', '-', '-.', ':', '-.', ':']
+        colors = ['g', 'r', 'y', 'b', 'c', 'm', 'y'] * 6
+        types = ['-', '-', '--', '-', '-.', ':', '-.', ':'] * 6
         ax1.set_ylabel(yLabel)
         if yLim:
             ax1.set_ylim(*yLim)
@@ -88,7 +88,7 @@ class Analyzer(object):
             l, = ax1.plot(d[:, ind], ls=types[i], c=colors[i])
             lines.append(l)
         mse = lambda d: self.root_mean_squared_error(data[0][0][ind], d) 
-        data = [data[0]] + [(d, l+' (RMSE: %.3f)' % mse(d)) for d,l in data[1:]]
+        #data = [data[0]] + [(d, l+' (RMSE: %.3f)' % mse(d)) for d,l in data[1:]]
         ax1.legend(lines, [l for d, l in data])
 
 
@@ -100,14 +100,14 @@ class Analyzer(object):
         else:
             ax1 = fig.add_subplot(211)
         ax1.set_title(title)
-        self.plotAx(ax1, data, 0, 'X', (0,1920) if yLim else None)
-        #self.plotAx(ax1, data, 0, 'X', (-960, 1920+960) if yLim else None)
+      #  self.plotAx(ax1, data, 0, 'X', (0,1920) if yLim else None)
+        self.plotAx(ax1, data, 0, 'X', (-960, 1920+960) if yLim else None)
         if data[0][0].shape[-1] == 1:
             return fig
 
         ax2 = fig.add_subplot(212)
-        self.plotAx(ax2, data, 1, 'Y', (0,1080) if yLim else None)
-        #self.plotAx(ax2, data, 1, 'Y', (-540, 1080+540) if yLim else None)
+       # self.plotAx(ax2, data, 1, 'Y', (0,1080) if yLim else None)
+        self.plotAx(ax2, data, 1, 'Y', (-540, 1080+540) if yLim else None)
         if plot:
             plt.show()
         return fig
@@ -227,7 +227,8 @@ class Analyzer(object):
             t = ['y_gd'] + t
         plots = zip(g, t)
         title += ' (rmse=%.3f)' % self.root_mean_squared_error(y, y_hat)
-        f = self.plotHeadGazeAndPointingFo(*plots, title = title, plot = plot)
+        f = self.plotHeadGazeAndPointingFo(*plots, title = title, 
+                                           plot = plot, yLim = False)
         #plt.close()
         return f
 

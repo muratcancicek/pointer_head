@@ -79,7 +79,7 @@ class KerasRunner(object):
 
     def getFCNModel(self, x, y): 
         #neurons = [12, 24, 36, 48, 48, 36, 24, 12]
-        neurons = [128]*4
+        neurons = [344]*2
         model = Sequential()
         model.add(Dense(neurons[0], input_dim=x.shape[-1], activation='relu'))
         for n in neurons[1:]:

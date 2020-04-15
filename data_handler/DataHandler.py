@@ -90,7 +90,10 @@ class DataHandler(object):
         self.subjects[id]['ts'] = {}
         self.subjects[id]['pairs'] = {}
         self.subjects[id]['Folder'] = Paths.SubjectsFolder + id + Paths.sep
-        self.subjects[id]['VideoList'] = os.listdir(self.subjects[id]['Folder'])
+        self.subjects[id]['VideoList'] = []
+        if os.path.isdir(self.subjects[id]['Folder']):
+            self.subjects[id]['VideoList'] = \
+                os.listdir(self.subjects[id]['Folder'])
         return self.subjects[id]
     
     def __getSubjectVideoTrailName(self, id, subjectVideoName):
@@ -194,9 +197,41 @@ class DataHandler(object):
         self.readSubjectTrail(id, tName)
         f = self.subjects[id]['ts'][tName]['t']['meta']['name']+'_PostData.csv'
         path = self.postDataFolder + id + Paths.sep + f 
-        self.subjects[id]['ts'][tName]['p'] = np.loadtxt(path, delimiter=',')
-        return self.subjects[id]['ts'][tName]['p']
-    
+        if os.path.isfile(path):
+            self.subjects[id]['ts'][tName]['p'] = np.loadtxt(path, delimiter=',')
+            return self.subjects[id]['ts'][tName]['p']
+        else:
+            print(path, 'does not exist, skipping...')
+            return None
+
+    def getFakePostDataForSubject(self, id, fakeId, tName):
+        if isinstance(id, int): id = str(id)
+        postData = self.loadPostDataOfSubjectVideo(id, tName)
+        if postData is None:
+            return None
+        postDataGenerator = PostDataGenerator()
+        postData_fake = postDataGenerator.regenerateFakerPostData(postData)
+        return postData_fake
+
+    def saveFakePostDataForSubject(self, id, fakeId, tName):
+        id = str(id); fakeId = str(fakeId)
+        postData_fake = self.getFakePostDataForSubject(id, fakeId, tName)
+        if postData_fake is None:
+            return None
+        f = self.subjects[id]['ts'][tName]['t']['meta']['name']+'_PostData.csv'
+        path = self.postDataFolder + fakeId + Paths.sep
+        os.makedirs(path, exist_ok = True)
+        np.savetxt(path + f , postData_fake, delimiter=',')
+        l = '\r%s (for Faker %s) has been saved successfully.' % (f, fakeId)
+        print(l, end = '\r')  
+        return
+
+    def saveAllFakePostDataForSubject(self, id, fakeId):
+        trails = self.readAllTrails()
+        for tName in trails:
+            self.saveFakePostDataForSubject(id, fakeId, tName)
+        return
+
     def loadAllPostDataOfSubject(self, id):
         if isinstance(id, int): id = str(id)
         self.readAllTrails()
@@ -204,15 +239,20 @@ class DataHandler(object):
         postDataSet = {}
         for tName in self.trails:
             self._readSubjectTrail(id, tName)
-            postDataSet[tName] = self.loadPostDataOfSubjectVideo(id, tName)
+            p = self.loadPostDataOfSubjectVideo(id, tName)
+            if not p is None:
+                postDataSet[tName] = p
         return postDataSet
     
     def loadDatasetPairFor(self, subjId, tName):
         if isinstance(subjId, int): subjId = str(subjId)
         postData = self.loadPostDataOfSubjectVideo(subjId, tName)
-        self.subjects[subjId]['pairs'][tName] = \
-            self.subjects[subjId]['ts'][tName]['t']['data'], postData
-        return self.subjects[subjId]['pairs'][tName]
+        if not postData is None:
+            self.subjects[subjId]['pairs'][tName] = \
+                self.subjects[subjId]['ts'][tName]['t']['data'], postData
+            return self.subjects[subjId]['pairs'][tName]
+        else:
+            return None
     
     def getDatasetPairFor(self, subjId, tName):
         if isinstance(subjId, int): subjId = str(subjId)
@@ -227,8 +267,9 @@ class DataHandler(object):
         postDataSet = self.loadAllPostDataOfSubject(subjId)
         for tName in self.subjects[subjId]['ts']:
             if not tName in self.subjects[subjId]['pairs']:
-                self.subjects[subjId]['pairs'][tName] = \
-                    self.getDatasetPairFor(subjId, tName)
+                pair = self.getDatasetPairFor(subjId, tName)
+                if pair:
+                    self.subjects[subjId]['pairs'][tName] = pair                    
         return self.subjects[subjId]['pairs']
     
     def getAllDatasetPairsFor(self, subjId):
@@ -237,9 +278,11 @@ class DataHandler(object):
     
     def getHeadGazeToPointingDataFor(self, subjId, tName):
         if isinstance(subjId, int): subjId = str(subjId)
-        data, postData = self.getDatasetPairFor(subjId, tName)
-        PDG = PostDataGenerator
-        return data, postData[:, PDG.gaze_b_ind:PDG.gaze_e_ind]
+        pair = self.getDatasetPairFor(subjId, tName)
+        if pair:
+            data, postData = pair
+            PDG = PostDataGenerator
+            return data, postData[:, PDG.gaze_b_ind:PDG.gaze_e_ind]
             
     def getAllHeadGazeToPointingPairs(self, subjId): 
         if isinstance(subjId, int): subjId = str(subjId)
@@ -250,9 +293,11 @@ class DataHandler(object):
     
     def getHeadPoseToPointingDataFor(self, subjId, tName):
         if isinstance(subjId, int): subjId = str(subjId)
-        data, postData = self.getDatasetPairFor(subjId, tName)
-        PDG = PostDataGenerator
-        return data, postData[:, PDG.pose_b_ind:PDG.pose_e_ind]
+        pair = self.getDatasetPairFor(subjId, tName)
+        if pair:
+            data, postData = pair
+            PDG = PostDataGenerator
+            return data, postData[:, PDG.pose_b_ind:PDG.pose_e_ind]
             
     def getAllHeadPoseToPointingPairs(self, subjId): 
         if isinstance(subjId, int): subjId = str(subjId)
@@ -277,3 +322,6 @@ class DataHandler(object):
             for t in test0:
                 test.append(t + '_' + subjId)
         return sorted(train), sorted(test)
+
+    def regenerateGazeFromPose(self, pose):
+        return PostDataGenerator().regenerateGazeFromPose(pose)

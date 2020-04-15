@@ -1,5 +1,5 @@
-import numpy as np
 from sklearn.preprocessing import MinMaxScaler
+import numpy as np
 
 class TrainingDataHandler(object):
     def __init__(self):
@@ -94,6 +94,28 @@ class TrainingDataHandler(object):
             setRatio = 1 - s / y.shape[0]
         test = [yy for x, yy in test]
         return test, setRatio
+    
+    def getNoisyX(self, x):
+        diff = x[1:] - x[:-1]
+        diff *= np.random.rand(*(diff.shape)) #+ 0.1
+        x_new = np.zeros_like(x)
+        x_new[0] = x[0]
+        for i in range(diff.shape[0]):
+            x_new[i+1] = x_new[i] + diff[i]
+        x_scaled = MinMaxScaler(feature_range = (0, 1)).fit_transform(x)
+        x_new_scaled = MinMaxScaler(feature_range = (0, 1)).fit_transform(x_new)
+        rmse = np.sqrt(np.square(x_scaled - x_new_scaled).mean())
+         
+        print(rmse) 
+        if rmse < 0.05 or rmse > 0.09:
+            return self.getNoisyX(x)
+        return x_new
+
+    def getAugmentedPairs(self, postData, data, fakers = 9):
+        reverse = lambda x, y: (np.flip(x, 0), np.flip(y, 0))
+        pairs = [(self.getNoisyX(postData), data) for i in range(fakers)]
+        pairs.extend([reverse(x, y) for x, y in [(postData, data)]+pairs])
+        return pairs
 
     def getExpDataAsDeltaFromAllPairsAsXY(self, pairs, 
                                           setRatio = 0.6, testSet = None):
@@ -102,8 +124,10 @@ class TrainingDataHandler(object):
             if not testSet is None:
                 if tName in testSet:
                     test.append((postData, data))
+                    test.extend(self.getAugmentedPairs(postData, data))
                 else:
                     train.append((postData, data))
+                    train.extend(self.getAugmentedPairs(postData, data))
             else:
                 train.append((postData, data))
         x, y, yList = self.mergeAllPairsAsXY(train + test)
