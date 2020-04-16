@@ -3,6 +3,7 @@
 
 from .InputEstimatorABC import InputEstimatorABC
 from ...Paths import TFMobileNetSSDFaceDetector_tf_model_path
+from ... import Paths
 from abc import ABCMeta, abstractmethod
 import tensorflow as tf
 import numpy as np
@@ -180,9 +181,9 @@ class FaceDetectorABC(InputEstimatorABC):
 class CVFaceDetector(FaceDetectorABC):
     def __init__(self, confidence_threshold = 0.90, dnn_proto_text_path = None, dnn_model_path = None, *args, **kwargs):
         if dnn_proto_text_path == None:
-            dnn_proto_text_path = 'C:/cStorage/Datasets/CV2Nets/CV2Res10SSD/deploy.prototxt'
+            dnn_proto_text_path = Paths.DATASETS_Folder + '/CV2Nets/CV2Res10SSD/deploy.prototxt'
         if dnn_model_path == None:
-            dnn_model_path = 'C:/cStorage/Datasets/CV2Nets/CV2Res10SSD/res10_300x300_ssd_iter_140000.caffemodel'
+            dnn_model_path = Paths.DATASETS_Folder + '/CV2Nets/CV2Res10SSD/res10_300x300_ssd_iter_140000.caffemodel'
         self.__detector = cv2.dnn.readNetFromCaffe(dnn_proto_text_path, dnn_model_path)
         self.__confidence_threshold = confidence_threshold  
         super().__init__(*args, **kwargs)

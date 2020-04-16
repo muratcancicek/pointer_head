@@ -124,10 +124,10 @@ class TrainingDataHandler(object):
             if not testSet is None:
                 if tName in testSet:
                     test.append((postData, data))
-                    test.extend(self.getAugmentedPairs(postData, data))
+                    #test.extend(self.getAugmentedPairs(postData, data))
                 else:
                     train.append((postData, data))
-                    train.extend(self.getAugmentedPairs(postData, data))
+                    #train.extend(self.getAugmentedPairs(postData, data))
             else:
                 train.append((postData, data))
         x, y, yList = self.mergeAllPairsAsXY(train + test)

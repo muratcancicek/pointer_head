@@ -72,13 +72,13 @@ def testNoise(DataHandler, subjId = 1, tName = 'infinity'):
     #analyzer = Analyzer()
     #analyzer.printRMSE(headGaze[:, 0], headGaze2[:, 0])
     #analyzer.printRMSE(headGaze[:, 1], headGaze2[:, 1])
-    analyzer.plotPrediction(headGaze, headGaze2, target)
+    #analyzer.plotPrediction(headGaze, headGaze2, target)
 
 def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
-    sList = ['1', '1111', '2', '2222', '3', '3333']  # 
-    # ['1', '2', '3'] # os.listdir(DataHandler.Paths.PostDataFolder)
-    handler = DataHandler() 
+     #['1', '1111', '2', '2222', '3', '3333']  # ['1', '2', '3'] # 
+    sList = os.listdir(DataHandler.Paths.PostDataFolder)
+    handler = DataHandler()
     analyzer = Analyzer()
     #analyzer.plotAllSubjectsFor(handler, sList, tName)
     analyzer.saveAllSubjectsplotted(handler, sList)
@@ -86,21 +86,21 @@ def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handler = DataHandler() 
-    runner = KerasRunner(handler, epochs = 6, batch_size = 300)
+    runner = KerasRunner(handler, epochs = 1, batch_size = 300)
     #data, postData = handler.getHeadPoseToPointingDataFor(subjId, tName)
     #runner.runFCNExpOnPair(data, postData)
     #runner.runFCNExpOnAllPairs(pairs)
     #runner.runFCNExpOnSubject(subjId)
-    sList = [1, 2, 3] ## 
+    sList = os.listdir(DataHandler.Paths.PostDataFolder) # [1, 2, 3] # 
     runner.runFCNExpOnSubjectList(sList)
     
 def main(DataHandler):
    #testSimpleML0(DataHandler)
-   #testKeras(DataHandler, 2), 'zigzag_part1_slow'
+   testKeras(DataHandler, 2), 'zigzag_part1_slow'
    #testCorrelation(DataHandler, 1)'random4''vertical_part1_slow''random4'
    #testPlottingFilters(DataHandler, 3, 'random4')'infinity'
-   #testNoise(DataHandler, 1)
-   testPlottingAllSubjects(DataHandler, 3, 'zigzag')
+   #testNoise(DataHandler, 3)
+    #testPlottingAllSubjects(DataHandler, 3, 'zigzag')
 
 if __name__ == '__main__':
     raise NotImplementedError
