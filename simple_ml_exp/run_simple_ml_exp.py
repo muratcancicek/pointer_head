@@ -9,7 +9,7 @@ def testSimpleML0(DataHandler, subjId = 1, tName = 'infinity'):
     pairs = handler.getAllHeadPoseToPointingPairs(subjId)
     print(len(pairs))
     #data, postData = handler.getHeadGazeToPointingDataFor(1, 'infinity')
-    #analyzer = Analyzer()
+    analyzer = Analyzer()
     #analyzer.plotHeadGazeAndPointingFor(data, postData)
 
 def get4Handlers(DataHandler, subjId):
@@ -76,13 +76,13 @@ def testNoise(DataHandler, subjId = 1, tName = 'infinity'):
 
 def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
-    sList = os.listdir(DataHandler.Paths.PostDataFolder) # ['1', '2', '3'] # 
+    sList = ['1', '1111', '2', '2222', '3', '3333']  # 
+    # ['1', '2', '3'] # os.listdir(DataHandler.Paths.PostDataFolder)
     handler = DataHandler() 
-    pairs = [(handler.getHeadGazeToPointingDataFor(s, tName)[1], s) for s in sList]
-    #handler = DataHandler() [:5]
     analyzer = Analyzer()
-    analyzer.plotHeadGazeAndPointingFo(*pairs, yLim = False)
-     
+    #analyzer.plotAllSubjectsFor(handler, sList, tName)
+    analyzer.saveAllSubjectsplotted(handler, sList)
+    
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handler = DataHandler() 
@@ -96,9 +96,9 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     
 def main(DataHandler):
    #testSimpleML0(DataHandler)
-   #testKeras(DataHandler, 2)
+   #testKeras(DataHandler, 2), 'zigzag_part1_slow'
    #testCorrelation(DataHandler, 1)'random4''vertical_part1_slow''random4'
-   #testPlottingFilters(DataHandler, 3, 'random4')'infinity', 'zigzag_part1_slow'
+   #testPlottingFilters(DataHandler, 3, 'random4')'infinity'
    #testNoise(DataHandler, 1)
    testPlottingAllSubjects(DataHandler, 3, 'zigzag')
 

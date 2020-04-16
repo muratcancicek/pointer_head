@@ -61,7 +61,7 @@ class Analyzer(object):
             print('%s %.3f %.3f %.3f %.3f %.3f %.3f' % (tName, *cov))
             
     def plotHeadGazeAndPointingFor(self, pointing, gaze): 
-        fig = plt.figure()
+        fig = plt.figure(dpi=120)
         ax1 = fig.add_subplot(211)
         ax1.set_title('HeadGazeAndPointing')
         ax1.set_ylim(-960, 1920+960)
@@ -153,14 +153,38 @@ class Analyzer(object):
         #f = self.plotHeadGazeAndPointingFo(*pairs, yLim = True, plot = True,
         #                                   title = 'HeadGazeFilters for '+tName)
         self.saveHeadGazeFilterPlotssAsPDF(pairs, tName, path, plot = False)
-
+                
     def plotHeadGazeFiltersForSubj(self, handlers, subjId, Paths):
         trails = handlers[0][1].readAllTrails()
         for tName in trails:
             name = '%s_%s_HeadGazeFilters.pdf' % (tName, subjId)
             path = Paths.HeadGazeGraphsFolder + subjId + Paths.sep + name
             self.plotHeadGazeFiltersFor(handlers, subjId, tName, path)
+            
+    def getPairsOfAllSubjectsFor(self, handler, sList, tName):
+        target = handler.readTrail(tName)['data']
+        pairs = [((None, target), 'Target')] + \
+            [(handler.getHeadGazeToPointingDataFor(s, tName), s) 
+                 for s in sList]
+        pairs = [(p[1], s) for p, s in pairs if not p is None]
+        return pairs
+    
+    def plotAllSubjectsFor(self, handler, sList, tName, plot = False, yLim = False):
+        pairs = self.getPairsOfAllSubjectsFor(handler, sList, tName)
+        fig = self.plotHeadGazeAndPointingFo(*pairs, title = tName,
+                                            plot = plot, yLim = yLim)
+        img = self.get_img_from_fig(fig)
+        return img
 
+    def saveAllSubjectsplotted(self, handler, sList):
+        trails = handler.readAllTrails()
+        for tName in trails:
+            name = '%s_3R3FSubjects_HeadGazePlots.pdf' % (tName)
+            path = handler.Paths.HeadGazeGraphsCommonFolder + handler.Paths.sep + name
+            img = self.plotAllSubjectsFor(handler, sList, tName)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            pdf = Image.fromarray(img)
+            pdf.save(path)
 
     def mean_squared_error(self, y, y_hat): 
         return np.square(y - y_hat).mean()

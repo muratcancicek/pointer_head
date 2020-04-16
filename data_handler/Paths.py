@@ -18,6 +18,7 @@ AnalysisFolder = WhiteBallExpFolder + 'Analysis' + sep
 TrainingResultsFolder = AnalysisFolder + 'TrainingResults' + sep
 AnalysisCommonFolder = TrainingResultsFolder + 'Common' + sep
 HeadGazeGraphsFolder = AnalysisFolder + 'HeadGazeGraphs' + sep
+HeadGazeGraphsCommonFolder = HeadGazeGraphsFolder + 'Common' + sep
 
 PostDataFolderList = [PostDataFolders + 'PostData_pnp%s' % s + sep
                       for s in ['Ransac', 'Ransac_kf', '', '_kf']]
