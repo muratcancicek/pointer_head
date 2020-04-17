@@ -38,7 +38,7 @@ def mask_unused_gpus(leave_unmasked=1):
     print('"nvidia-smi" is probably not installed. GPUs are not masked', e)
 
 #mask_unused_gpus(2)
-os.environ["CUDA_VISIBLE_DEVICES"] = '4'
+os.environ["CUDA_VISIBLE_DEVICES"] = '0'
 class KerasRunner(object):
     def __init__(self, dataHandler, modelType = 'FCN', trainDataHandler = None, 
                  analyzer = None, lr = 0.001, epochs = 50, batch_size = 10):

@@ -1,3 +1,4 @@
+import time
 import numpy as np
 import torch
 
@@ -48,12 +49,20 @@ class TorchModel(torch.nn.Module):
 
 
     def fit(self, x, y, epochs):
+        print()
         n = x.shape[0]
+        bCount = int(n/self.batch_size) 
         x, y = torch.from_numpy(x).float(), torch.from_numpy(y).float()
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         for t in range(epochs):
+            start = time.time()
+            print('Epoch %d/%d' % (t, epochs))
             permutation = torch.randperm(x.size()[0])
-
+            le = 40 
+            bar = lambda b: '%s>%s' % ('=' * int(le*b/bCount), '.' * int(le*(bCount - b)/bCount)) \
+                if b+1<bCount else '='*le
+            s = lambda b, t, e, l: '%d/%d [%s] - %ds %dus/sample loss: %.4f' % \
+                (b, n, bar(b/self.batch_size), t, e, l)
             for b in range(0, n, self.batch_size):
                 indices = permutation[b:b+self.batch_size]
                 x_batch, y_batch = x[indices], y[indices]
@@ -67,15 +76,19 @@ class TorchModel(torch.nn.Module):
                 # values of y, and the loss function returns a Tensor containing the
                 # loss.
                 loss = self.loss_fn(y_pred, y_batch)
-                self.loss_list.append(loss.item())
+                self.loss_list.append(np.sqrt(loss.item()/self.batch_size))
                 # Zero the gradients before running the backward pass.
                 self.optimizer.zero_grad()
 
                 loss.backward() 
                 self.optimizer.step()
-            if t % 10 == 9:
-                print('Epoch: %d, RMSE: %.3f' % (t, np.sqrt(self.loss_list[-1])))
-
+                t = time.time() - start
+                e = int((t / (b+1)*self.batch_size)*1000000)
+                print('\r%s' % s(b, t, e, loss.item()), end ='\r')
+            #if t % 10 == 9:
+            #    print('Epoch: %d, RMSE: %.3f' % (t, np.sqrt(self.loss_list[-1])))
+            
+            print('%s' % s(b, t, e, sum(self.loss_list[-self.batch_size:])/self.batch_size))
 
         return {'loss': self.loss_list}
     def predict(self, x):
