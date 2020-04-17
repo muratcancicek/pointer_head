@@ -201,7 +201,7 @@ class DataHandler(object):
             self.subjects[id]['ts'][tName]['p'] = np.loadtxt(path, delimiter=',')
             return self.subjects[id]['ts'][tName]['p']
         else:
-            print(path, 'does not exist, skipping...')
+            print('\r%s does not exist, skipping...' % path, end = '\r')
             return None
 
     def getFakePostDataForSubject(self, id, fakeId, tName):
