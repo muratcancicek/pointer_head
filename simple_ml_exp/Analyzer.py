@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 from pykalman import KalmanFilter
 from PIL import Image 
+from fpdf import FPDF
 import numpy as np
 import math 
 import cv2
@@ -283,9 +284,16 @@ class Analyzer(object):
         mergedImg = images[0]
         sumImg = self.getModelSummaryImage(mergedImg, text)
         images.append(sumImg)
-        for f in images[1:]:
-            mergedImg = np.concatenate((mergedImg, f))
-        return mergedImg
+        l = []
+        folder = '/'.join(path.split(os.sep)[:-1])+'/tmp/'
+        for i, f in enumerate(images[1:]):
+            imgPath = folder + '%d.png'%i
+            cv2.imwrite(imgPath, f)
+            l.append(imgPath)
+            #l.append(Image.open(imgPath))
+            #mergedImg = np.concatenate((mergedImg, f))
+        #return mergedImg
+        return l
 
     def savePredictionResults(self, results, path, text, plot = False):
         mergedImg = self.getPredResultImagesMerged(results, path, text, plot)
@@ -293,6 +301,13 @@ class Analyzer(object):
 
     def savePredictionResultsAsPDF(self, results, path, text, plot = False):
         mergedImg = self.getPredResultImagesMerged(results, path, text, plot)
-        mergedImg = cv2.cvtColor(mergedImg, cv2.COLOR_BGR2RGB)
-        pdf = Image.fromarray(mergedImg)
-        pdf.save(path)
+        s = (2643*.264, 1134*.264)
+        pdf = FPDF(format=s)
+        for page in mergedImg:
+            pdf.add_page()
+            pdf.image(page, 0, 0, s[0], s[1])
+            
+        pdf.output(path, "F")
+        #mergedImg = cv2.cvtColor(mergedImg, cv2.COLOR_BGR2RGB)
+        #pdf = Image.fromarray(mergedImg)
+        #pdf.save(path)

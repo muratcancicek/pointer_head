@@ -17,6 +17,7 @@ PostDataFolder = PostDataFolders + 'PostData_pnp_kf' + sep
 AnalysisFolder = WhiteBallExpFolder + 'Analysis' + sep
 TrainingResultsFolder = AnalysisFolder + 'TrainingResults' + sep
 AnalysisCommonFolder = TrainingResultsFolder + 'Common' + sep
+AnalysisTempFolder = AnalysisCommonFolder + 'Tmp' + sep
 HeadGazeGraphsFolder = AnalysisFolder + 'HeadGazeGraphs' + sep
 HeadGazeGraphsCommonFolder = HeadGazeGraphsFolder + 'Common' + sep
 

@@ -181,7 +181,7 @@ class KerasRunner(object):
         self._model.summary(print_fn = lambda x: stringlist.append(x))
         #short_model_summary = "\n".join(stringlist)
         #print(short_model_summary)
-        stringlist = self._addTrailNamesToExpSummary(stringlist)
+        #stringlist = self._addTrailNamesToExpSummary(stringlist)
         return stringlist
              
     def saveFCNExpResults(self, results, subjId = None): 

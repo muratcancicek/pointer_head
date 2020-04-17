@@ -91,15 +91,16 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     #runner.runFCNExpOnPair(data, postData)
     #runner.runFCNExpOnAllPairs(pairs)
     #runner.runFCNExpOnSubject(subjId)
-    sList = [1, 2, 3] # ['1', '1111', '2', '2222', '3', '3333']  # os.listdir(DataHandler.Paths.PostDataFolder) # 
+    sList = os.listdir(DataHandler.Paths.PostDataFolder) # [1, 2, 3] 
+    # ['1', '1111', '2', '2222', '3', '3333']  # 
     runner.runFCNExpOnSubjectList(sList)
     
 def main(DataHandler):
    #testSimpleML0(DataHandler)
-   testKeras(DataHandler, 2), 'zigzag_part1_slow'
+   testKeras(DataHandler, 2)
    #testCorrelation(DataHandler, 1)'random4''vertical_part1_slow''random4'
    #testPlottingFilters(DataHandler, 3, 'random4')'infinity'
-   #testNoise(DataHandler, 3)
+   #testNoise(DataHandler, 3), 'zigzag_part1_slow'
     #testPlottingAllSubjects(DataHandler, 3, 'zigzag')
 
 if __name__ == '__main__':
