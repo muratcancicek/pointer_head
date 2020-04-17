@@ -7,7 +7,7 @@ python run_pointer_head_pretests.py
 ssh muratcan@cvlabgpu.soe.ucsc.edu
 ssh muratcan@73.189.180.205
 
-cicekm@cvlab1.soe.ucsc.edu
+ssh cicekm@cvlab1.soe.ucsc.edu
 cvLab2019
 
 source ~/pyenvs/tf36/bin/activate
@@ -24,3 +24,5 @@ python -c "import tensorflow as tf; tf.test.is_gpu_available()"
 python -c "import tensorflow as tf; print(9000, tf.test.gpu_device_name())"
 
 git reset --hard HEAD
+
+python -c "import torch; torch.cuda.get_device_name(0)"

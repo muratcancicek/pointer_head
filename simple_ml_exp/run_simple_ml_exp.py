@@ -86,13 +86,13 @@ def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handler = DataHandler() 
-    runner = KerasRunner(handler, epochs = 1, batch_size = 300)
+    runner = KerasRunner(handler, epochs = 40, batch_size = 30)
     #data, postData = handler.getHeadPoseToPointingDataFor(subjId, tName)
     #runner.runFCNExpOnPair(data, postData)
     #runner.runFCNExpOnAllPairs(pairs)
     #runner.runFCNExpOnSubject(subjId)
-    sList = os.listdir(DataHandler.Paths.PostDataFolder) # [1, 2, 3] 
-    # ['1', '1111', '2', '2222', '3', '3333']  # 
+     # os.listdir(DataHandler.Paths.PostDataFolder) # 
+    sList = [1, 2, 3] # ['1'] ['1', '1111', '2', '2222', '3', '3333'] #
     runner.runFCNExpOnSubjectList(sList)
     
 def main(DataHandler):

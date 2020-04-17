@@ -1,18 +1,19 @@
 from .TrainingDataHandler import TrainingDataHandler
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
-from keras.optimizers import Adam
+#from keras.optimizers import Adam
 import os
-if os.name == 'nt':
-    from keras.models import Sequential
-    from keras.layers import Dropout
-    from keras.layers import Dense
-    from keras.layers import LSTM
-elif os.name == 'posix':
-    from tensorflow.keras.models import Sequential
-    from tensorflow.keras.layers import Dropout
-    from tensorflow.keras.layers import Dense
-    from tensorflow.keras.layers import LSTM
+#if os.name == 'nt':
+#    from keras.models import Sequential
+#    from keras.layers import Dropout
+#    from keras.layers import Dense
+#    from keras.layers import LSTM
+#elif os.name == 'posix':
+#    from tensorflow.keras.models import Sequential
+#    from tensorflow.keras.layers import Dropout
+#    from tensorflow.keras.layers import Dense
+#    from tensorflow.keras.layers import LSTM
+from .TorchModel import TorchModel
 from .Analyzer import Analyzer
 from datetime import datetime
 import numpy as np
@@ -159,8 +160,9 @@ class KerasRunner(object):
 
     def getExpSummary(self, expData, y_hat, hist, t): 
         x_train, y_train, x_test, y_test, yList = expData
-        t_mse, mse = hist.history['loss'][-1], np.square(y_test - y_hat).mean() 
         print()
+        w = -1 #w(, )#.history
+        t_mse, mse = hist['loss'][-1], np.square(y_test - y_hat).mean() 
         mseText = 'Train MSE: %.4f / Test MSE: %.4f' % (t_mse, mse)
         print(mseText)
         stringlist = []
@@ -178,7 +180,7 @@ class KerasRunner(object):
         trText = 'Total Experiment Duration (incl. training): %s' % t
         stringlist = [exText, mText, ratText, '', 
                       epText, lrText, trText, '', mseText, '']
-        self._model.summary(print_fn = lambda x: stringlist.append(x))
+        #self._model.summary(print_fn = lambda x: stringlist.append(x))
         #short_model_summary = "\n".join(stringlist)
         #print(short_model_summary)
         #stringlist = self._addTrailNamesToExpSummary(stringlist)
@@ -207,6 +209,22 @@ class KerasRunner(object):
         y_hat = self._model.predict(x_test) 
         results = self.getExpResults(y_test, y_hat, yList)
         t = time.time() - start
+        summary = self.getExpSummary(expData, y_hat, h.history, t)
+        return results, summary           
+             
+    def runTorchExpOnAllPairsAsXY(self, pairs): 
+        start = time.time()
+        expData = self._tdHandler.\
+            getExpDataAsDeltaFromAllPairsAsXY(pairs, 1, self._trailsToTest)
+        x_train, y_train, x_test, y_test, yList = expData
+        self._model = TorchModel(x_train.shape[-1], y_train.shape[-1],
+                                 hiddenC = 3, hiddenD = 36,
+                                 batch_size = self._batch_size,
+                                 learning_rate=self._lr)
+        h = self._model.fit(x_train, y_train, self._epochs)
+        y_hat = self._model.predict(x_test) 
+        results = self.getExpResults(y_test, y_hat, yList)
+        t = time.time() - start
         summary = self.getExpSummary(expData, y_hat, h, t)
         return results, summary
            
@@ -224,5 +242,6 @@ class KerasRunner(object):
             .getExpDataFromAllSubjectsAsPairs(self._dataHandler, sList)
         self._trailsToTrain, self._trailsToTest = \
             self._dataHandler.getDefaultTestTrailsForSubjList(sList)
-        results = self.runFCNExpOnAllPairsAsXY(pairs)
+        #results = self.runFCNExpOnAllPairsAsXY(pairs)
+        results = self.runTorchExpOnAllPairsAsXY(pairs)
         self.saveFCNExpResults(results)
