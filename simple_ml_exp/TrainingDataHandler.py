@@ -9,10 +9,10 @@ class TrainingDataHandler(object):
         
     def scaleData(self, x, y):
         if self.x_sc is None:
-           self.x_sc = MinMaxScaler(feature_range = (0, 1))
+            self.x_sc = MinMaxScaler(feature_range = (0, 1))
         x_scaled = self.x_sc.fit_transform(x)
         if self.y_sc is None:
-           self.y_sc = MinMaxScaler(feature_range = (0, 1))
+            self.y_sc = MinMaxScaler(feature_range = (0, 1))
         y_scaled = self.y_sc.fit_transform(y)
         return x_scaled, y_scaled
     

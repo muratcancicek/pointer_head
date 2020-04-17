@@ -2,10 +2,10 @@ from .TrainingDataHandler import TrainingDataHandler
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
 from keras.optimizers import Adam
-from keras.models import Sequential
-from keras.layers import Dropout
-from keras.layers import Dense
-from keras.layers import LSTM
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dropout
+from tensorflow.keras.layers import Dense
+from tensorflow.keras.layers import LSTM
 from .Analyzer import Analyzer
 from datetime import datetime
 import numpy as np
@@ -88,7 +88,7 @@ class KerasRunner(object):
         model.add(Dense(units = y.shape[-1]))
         adam = Adam(lr = self._lr)
         self._optimizerType = 'Adam'
-        model.compile(loss='mse', optimizer= adam)
+        model.compile(loss='mse', optimizer= 'adam')
         return model
     
     def runFCNExpOnPair(self, data, postData): 
