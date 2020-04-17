@@ -22,3 +22,5 @@ python -c "import tensorflow as tf; tf.config.list_physical_devices(device_type=
 
 python -c "import tensorflow as tf; tf.test.is_gpu_available()"
 python -c "import tensorflow as tf; print(9000, tf.test.gpu_device_name())"
+
+git reset --hard HEAD

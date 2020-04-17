@@ -2,10 +2,17 @@ from .TrainingDataHandler import TrainingDataHandler
 from sklearn.preprocessing import MinMaxScaler
 from matplotlib import pyplot as plt
 from keras.optimizers import Adam
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dropout
-from tensorflow.keras.layers import Dense
-from tensorflow.keras.layers import LSTM
+import os
+if os.name == 'nt':
+    from keras.models import Sequential
+    from keras.layers import Dropout
+    from keras.layers import Dense
+    from keras.layers import LSTM
+elif os.name == 'posix':
+    from tensorflow.keras.models import Sequential
+    from tensorflow.keras.layers import Dropout
+    from tensorflow.keras.layers import Dense
+    from tensorflow.keras.layers import LSTM
 from .Analyzer import Analyzer
 from datetime import datetime
 import numpy as np
@@ -13,7 +20,6 @@ import random
 import time
 import math 
 import subprocess as sp
-import os
 
 def mask_unused_gpus(leave_unmasked=1):
   ACCEPTABLE_AVAILABLE_MEMORY = 1024*5
