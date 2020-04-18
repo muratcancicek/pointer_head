@@ -92,7 +92,7 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     #runner.runFCNExpOnAllPairs(pairs)
     #runner.runFCNExpOnSubject(subjId)
      # os.listdir(DataHandler.Paths.PostDataFolder) # 
-    sList = ['1', '1111', '2', '2222', '3', '3333'] #[1] #, 2, 3 ['1'] 
+    sList = ['1', '1111', '2', '2222', '3', '3333'] #, 2, 3 ['1'] [1] #
     runner.runFCNExpOnSubjectList(sList)
     
 def main(DataHandler):

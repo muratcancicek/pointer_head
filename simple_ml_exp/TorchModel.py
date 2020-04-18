@@ -9,14 +9,19 @@ class TorchModel(torch.nn.Module):
         self.batch_size = batch_size
         self.inputD, self.outputD = inputD, outputD
         self.hiddenC, self.hiddenD = hiddenC, hiddenD
-        self.linearBegin = torch.nn.Linear(inputD, hiddenD)
-        self.linearHiddens = [torch.nn.Linear(hiddenD, hiddenD)]*hiddenC
-        self.linearOut = torch.nn.Linear(hiddenD, outputD)
+        self.linearBegin = torch.nn.Linear(inputD, hiddenD).cuda()
+        self.linearHiddens = [torch.nn.Linear(hiddenD, hiddenD).cuda()]*hiddenC
+        self.linearOut = torch.nn.Linear(hiddenD, outputD).cuda()
         # The nn package also contains definitions of popular loss functions; 
-        # in this case we will use Mean Squared Error (MSE) as our loss function.
-        self.loss_fn = torch.nn.MSELoss(reduction='sum')
+        # in this case we will use Mean Squared Error (MSE) as our loss function.reduction='sum'
+        self.loss_fn = torch.nn.MSELoss()
         self.loss_list = []
         self.learning_rate = learning_rate
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        print()
+        print('Training on', self.device)
+        self.to(self.device)
+
 
     def getFCNModel(self, x, y, batch_size):
         # batch_size is batch size; inputD is input dimension;
@@ -33,6 +38,7 @@ class TorchModel(torch.nn.Module):
             torch.nn.ReLU(),
             torch.nn.Linear(self.hiddenD, self.outputD),
         )
+        self.cuda()
         return self
         
     def forward(self, x):
@@ -41,6 +47,7 @@ class TorchModel(torch.nn.Module):
         a Tensor of output data. We can use Modules defined in the constructor as
         well as arbitrary operators on Tensors.
         """
+        self.to(self.device)
         h_relu = self.linearBegin(x).clamp(min=0)
         for hiddenLayer in self.linearHiddens:
             h_relu = hiddenLayer(h_relu)
@@ -53,19 +60,21 @@ class TorchModel(torch.nn.Module):
         n = x.shape[0]
         bCount = int(n/self.batch_size) 
         x, y = torch.from_numpy(x).float(), torch.from_numpy(y).float()
+        #x, y = x.to(self.device), y.to(self.device)
         self.optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
+
+        le = 40 
+        bar = lambda b: '%s>%s' % ('=' * int(le*b/bCount), '.' * int(le*(bCount - b)/bCount)) \
+            if b+1<bCount else '='*le
+        s = lambda b, t, e, lo: '%d/%d [%s] - %ds %dus/sample loss: %.4f' % \
+            (b, n, bar(b/self.batch_size), t, e, lo)
         for t in range(epochs):
             start = time.time()
             print('Epoch %d/%d' % (t, epochs))
             permutation = torch.randperm(x.size()[0])
-            le = 40 
-            bar = lambda b: '%s>%s' % ('=' * int(le*b/bCount), '.' * int(le*(bCount - b)/bCount)) \
-                if b+1<bCount else '='*le
-            s = lambda b, t, e, l: '%d/%d [%s] - %ds %dus/sample loss: %.4f' % \
-                (b, n, bar(b/self.batch_size), t, e, l)
             for b in range(0, n, self.batch_size):
                 indices = permutation[b:b+self.batch_size]
-                x_batch, y_batch = x[indices], y[indices]
+                x_batch, y_batch = x[indices].to(self.device), y[indices].to(self.device)
                 # Forward pass: compute predicted y by passing x to the model. Module objects
                 # override the __call__ operator so you can call them like functions. When
                 # doing so you pass a Tensor of input data to the Module and it produces
@@ -76,7 +85,7 @@ class TorchModel(torch.nn.Module):
                 # values of y, and the loss function returns a Tensor containing the
                 # loss.
                 loss = self.loss_fn(y_pred, y_batch)
-                self.loss_list.append(np.sqrt(loss.item()/self.batch_size))
+                self.loss_list.append(loss.item())
                 # Zero the gradients before running the backward pass.
                 self.optimizer.zero_grad()
 
@@ -84,13 +93,14 @@ class TorchModel(torch.nn.Module):
                 self.optimizer.step()
                 t = time.time() - start
                 e = int((t / (b+1)*self.batch_size)*1000000)
-                print('\r%s' % s(b, t, e, loss.item()), end ='\r')
+                print('\r%s' % s(b, t, e, self.loss_list[-1]), end ='\r')
             #if t % 10 == 9:
-            #    print('Epoch: %d, RMSE: %.3f' % (t, np.sqrt(self.loss_list[-1])))
+            #    print('Epoch: %d, RMSE: %.3f' % (t, self.loss_list[-1]))np.sqrt()
             
-            print('%s' % s(b, t, e, sum(self.loss_list[-self.batch_size:])/self.batch_size))
+            print('%s' % s(b, t, e, sum(self.loss_list[-bCount:])/bCount))
 
         return {'loss': self.loss_list}
+
     def predict(self, x):
         x = torch.from_numpy(x).float()
-        return self(x).detach().numpy()
+        return self(x.to(self.device)).cpu().detach().numpy()
