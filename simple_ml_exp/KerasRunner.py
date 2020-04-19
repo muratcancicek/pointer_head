@@ -132,8 +132,7 @@ class KerasRunner(object):
             s += '%s' % tName
         return s 
 
-                   
-    def getExpResults(self, y_test, y_hat, yList): 
+    def getExpResultsFromDelta(self, y_test, y_hat, yList): 
         results = []
         for title, y_gd in zip(self._trailsToTest, yList):
             i = y_gd.shape[0]
@@ -143,8 +142,20 @@ class KerasRunner(object):
                 self._tdHandler.rebuildResultsFromDelta(y_sub,y_hat_sub,y_gd[0])
             title = self._getFancyTrailName(title, padding = False)
             results.append((y_r, y_hat_r, y_gd, title))
-            #img = analyzer.getPredictionPlot(y_r, y_hat_r, y_gd, title, False)
         return results
+
+    def getExpResults(self, y_test, y_hat, yList): 
+        results = []
+        for title, y_gd in zip(self._trailsToTest, yList):
+            i = y_gd.shape[0]
+            y_sub, y_test = y_test[1:i], y_test[i:]
+            y_hat_sub, y_hat = y_hat[1:i], y_hat[i:]
+            y_sub_unsc = self._tdHandler.unscaleData(y_sub)
+            y_hat_sub_unsc = self._tdHandler.unscaleData(y_hat_sub)
+            title = self._getFancyTrailName(title, padding = False)
+            results.append((y_sub_unsc, y_hat_sub_unsc, y_gd, title))
+        return results
+
     def _addTrailNamesToExpSummary(self, stringlist): 
         def addFrom(l):
             for tName in l:
@@ -207,18 +218,35 @@ class KerasRunner(object):
         self._model = self.getFCNModel(x_train, y_train)
         h = self._model.fit(x_train, y_train, self._batch_size, self._epochs)
         y_hat = self._model.predict(x_test) 
-        results = self.getExpResults(y_test, y_hat, yList)
+        results = self.getExpResultsFromDelta(y_test, y_hat, yList)
         t = time.time() - start
         summary = self.getExpSummary(expData, y_hat, h.history, t)
         return results, summary           
              
-    def runTorchExpOnAllPairsAsXY(self, pairs): 
+    def runTorchPoseDeltaExpOnAllPairsAsXY(self, pairs): 
         start = time.time()
         expData = self._tdHandler.\
             getExpDataAsDeltaFromAllPairsAsXY(pairs, 1, self._trailsToTest)
         x_train, y_train, x_test, y_test, yList = expData
         self._model = TorchModel(x_train.shape[-1], y_train.shape[-1],
-                                 hiddenC = 3, hiddenD = 36,
+                                 hiddenC = 3, hiddenD = 16,
+                                 batch_size = self._batch_size,
+                                 learning_rate=self._lr)
+        h = self._model.fit(x_train, y_train, self._epochs)
+        y_hat = self._model.predict(x_test) 
+        results = self.getExpResultsFromDelta(y_test, y_hat, yList)
+        t = time.time() - start
+        summary = self.getExpSummary(expData, y_hat, h, t)
+        return results, summary
+           
+             
+    def runTorchPoseExpOnAllPairsAsXY(self, pairs): 
+        start = time.time()
+        expData = self._tdHandler.\
+            getExpDataFromAllPairsAsXY(pairs, 1, self._trailsToTest)
+        x_train, y_train, x_test, y_test, yList = expData
+        self._model = TorchModel(x_train.shape[-1], y_train.shape[-1],
+                                 hiddenC = 3, hiddenD = 16,
                                  batch_size = self._batch_size,
                                  learning_rate=self._lr)
         h = self._model.fit(x_train, y_train, self._epochs)
@@ -235,13 +263,23 @@ class KerasRunner(object):
             self._dataHandler.getDefaultTestTrailsForSubj(subjId)
         results = self.runFCNExpOnAllPairsAsXY(pairs)
         self.saveFCNExpResults(results, subjId)
-        
-    def runFCNExpOnSubjectList(self, sList): 
+
+    def runFCNPoseExpOnSubjectList(self, sList): 
         sList = [str(subjId) for subjId in sList]
         pairs = self._tdHandler\
-            .getExpDataFromAllSubjectsAsPairs(self._dataHandler, sList)
+            .getExpPoseDataFromAllSubjectsAsPairs(self._dataHandler, sList)
         self._trailsToTrain, self._trailsToTest = \
             self._dataHandler.getDefaultTestTrailsForSubjList(sList)
         #results = self.runFCNExpOnAllPairsAsXY(pairs)
-        results = self.runTorchExpOnAllPairsAsXY(pairs)
+        results = self.runTorchPoseExpOnAllPairsAsXY(pairs)
+        self.saveFCNExpResults(results)
+        
+    def runFCNPoseDeltaExpOnSubjectList(self, sList): 
+        sList = [str(subjId) for subjId in sList]
+        pairs = self._tdHandler\
+            .getExpPoseDataFromAllSubjectsAsPairs(self._dataHandler, sList)
+        self._trailsToTrain, self._trailsToTest = \
+            self._dataHandler.getDefaultTestTrailsForSubjList(sList)
+        #results = self.runFCNExpOnAllPairsAsXY(pairs)
+        results = self.runTorchPoseExpOnAllPairsAsXY(pairs)
         self.saveFCNExpResults(results)

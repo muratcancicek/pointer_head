@@ -124,10 +124,8 @@ class TrainingDataHandler(object):
             if not testSet is None:
                 if tName in testSet:
                     test.append((postData, data))
-                    #test.extend(self.getAugmentedPairs(postData, data))
                 else:
                     train.append((postData, data))
-                    #train.extend(self.getAugmentedPairs(postData, data))
             else:
                 train.append((postData, data))
         x, y, yList = self.mergeAllPairsAsXY(train + test)
@@ -137,7 +135,27 @@ class TrainingDataHandler(object):
         expData = self.getExpDataAsDeltaFromPair(x, y, setRatio)
         return expData + (test, )
 
-    def getExpDataFromAllSubjectsAsPairs(self, handler, sList):
+
+    def getExpDataFromAllPairsAsXY(self, pairs, 
+                                          setRatio = 0.6, testSet = None):
+        train, test = [], []
+        for tName, (data, postData) in pairs.items():
+            if not testSet is None:
+                if tName in testSet:
+                    test.append((postData, data))
+                else:
+                    train.append((postData, data))
+            else:
+                train.append((postData, data))
+        x, y, yList = self.mergeAllPairsAsXY(train + test)
+        test, setRatio = self._getYTestAndRatio(y, yList, test, setRatio)
+        y = y[:, :1]
+        test = [y[:, :1] for y in test]
+        x_scaled, y_scaled = self.scaleData(x, y)
+        expData = self.separateXY(x_scaled, y_scaled, setRatio)
+        return expData + (test, )
+
+    def getExpPoseDataFromAllSubjectsAsPairs(self, handler, sList):
         sList = [str(subjId) for subjId in sList]
         mergedPairs = {}
         for subjId in sList:
