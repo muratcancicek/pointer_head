@@ -163,3 +163,12 @@ class TrainingDataHandler(object):
             for tName, (data, postData) in pairs.items():
                 mergedPairs[tName+'_'+subjId] = (data, postData) 
         return mergedPairs
+
+    def getExpPoseDataFromAllSubjectsAsPairs(self, handler, sList):
+        sList = [str(subjId) for subjId in sList]
+        mergedPairs = {}
+        for subjId in sList:
+            pairs = handler.getAllHeadAngleToPointingPairs(subjId)
+            for tName, (data, postData) in pairs.items():
+                mergedPairs[tName+'_'+subjId] = (data, postData) 
+        return mergedPairs

@@ -276,8 +276,10 @@ class KerasRunner(object):
         
     def runFCNPoseDeltaExpOnSubjectList(self, sList): 
         sList = [str(subjId) for subjId in sList]
+        #pairs = self._tdHandler\
+        #    .getExpPoseDataFromAllSubjectsAsPairs(self._dataHandler, sList)
         pairs = self._tdHandler\
-            .getExpPoseDataFromAllSubjectsAsPairs(self._dataHandler, sList)
+            .getExpAngleDataFromAllSubjectsAsPairs(self._dataHandler, sList)
         self._trailsToTrain, self._trailsToTest = \
             self._dataHandler.getDefaultTestTrailsForSubjList(sList)
         #results = self.runFCNExpOnAllPairsAsXY(pairs)
