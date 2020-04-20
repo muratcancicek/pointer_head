@@ -1,6 +1,6 @@
 from .TrainingDataHandler import TrainingDataHandler
 from matplotlib import pyplot as plt
-from .KerasRunner import KerasRunner
+from .DLExpRunner import DLExpRunner
 from .Analyzer import Analyzer
 import os, math, numpy as  np
 
@@ -63,13 +63,13 @@ def testNoise(DataHandler, subjId = 1, tName = 'infinity'):
     #target, headPose = handler.getHeadPoseToPointingDataFor(subjId, tName)
     start = int(str(subjId)*3+'0')
     fakeIDs = [str(i) for i in range(start, start+10)]
-    for f in fakeIDs:
+    for f in fakeIDs: 
         handler.saveAllFakePostDataForSubject(subjId, f)
     #handler.saveFakePostDataForSubject(subjId, fakeId, tName)
     #fakeId = '2224'
     #target, headGaze = handler.getHeadGazeToPointingDataFor(subjId, tName)
     #_, headGaze2 = handler.getHeadGazeToPointingDataFor(fakeId, tName)
-    #analyzer = Analyzer()
+    #analyzer = Analyzer()  
     #analyzer.printRMSE(headGaze[:, 0], headGaze2[:, 0])
     #analyzer.printRMSE(headGaze[:, 1], headGaze2[:, 1])
     #analyzer.plotPrediction(headGaze, headGaze2, target)
@@ -80,28 +80,30 @@ def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
     sList = os.listdir(DataHandler.Paths.PostDataFolder)
     handler = DataHandler()
     analyzer = Analyzer()
-    #analyzer.plotAllSubjectsFor(handler, sList, tName)
-    analyzer.saveAllSubjectsplotted(handler, sList)
+    #analyzer.plotAllSubjectsFor(handler, sList, tName) 
+    analyzer.saveAllSubjectsplotted(handler, sList) 
     
+os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handler = DataHandler() 
-    runner = KerasRunner(handler, lr = 0.0001, epochs = 3, batch_size = 10)
-    #data, postData = handler.getHeadPoseToPointingDataFor(subjId, tName)
-    #runner.runFCNExpOnPair(data, postData)
-    #runner.runFCNExpOnAllPairs(pairs)
-    #runner.runFCNExpOnSubject(subjId)
-     # os.listdir(DataHandler.Paths.PostDataFolder) # 
-    sList = ['1', '1111', '2', '2222', '3', '3333'] # ['1'] [1, 2, 3] #FCNPoseExpOnSubjectList
-    runner.runFCNPoseExpOnSubjectList(sList)
+    runner = DLExpRunner(handler, lr = 0.01, epochs = 10, batch_size = 30)
+     # os.listdir(DataHandler.Paths.PostDataFolder)
+    sList = [1, 2, 3] # ['1', '1111', '2', '2222', '3', '3333']
+    #  FCNPoseExpOnSubjectList_DELTA_DELTA['1'] # 
+    #expSettings = (sList, TrainingDataHandler.POSE_DATA, DLExpRunner.TORCH_FCN)
+    expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.TORCH_FCN)
+    #expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.KERAS_FCN)
+    runner.runExpOnSubjectList(*expSettings)
     
 def main(DataHandler):
    #testSimpleML0(DataHandler)
    testKeras(DataHandler, 2)
-   #testCorrelation(DataHandler, 1)'random4''vertical_part1_slow''random4'
-   #testPlottingFilters(DataHandler, 3, 'random4')'infinity'
-   #testNoise(DataHandler, 3), 'zigzag_part1_slow'
-    #testPlottingAllSubjects(DataHandler, 3, 'zigzag')
+   #testCorrelation(DataHandler, 1)
+   #testPlottingFilters(DataHandler, 3, 'random4')
+   #testNoise(DataHandler, 3), 
+   #testPlottingAllSubjects(DataHandler, 3, 'zigzag')
 
 if __name__ == '__main__':
     raise NotImplementedError

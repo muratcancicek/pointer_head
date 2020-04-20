@@ -3,7 +3,7 @@ import numpy as np
 import torch
 
 class TorchFCNModel(torch.nn.Module):
-    def __init__(self, inputD, outputD, hiddenC = 3, hiddenD = 36):
+    def __init__(self, inputD, outputD, hiddenC = 2, hiddenD = 36):
         super(TorchFCNModel, self).__init__()
         self.device = torch.device("cuda:0" 
                                    if torch.cuda.is_available() else "cpu")
@@ -13,32 +13,33 @@ class TorchFCNModel(torch.nn.Module):
         #self.linearHiddens = [torch.nn.Linear(hiddenD, hiddenD).to(self.device)]*hiddenC
         self.linearHidden1 = torch.nn.Linear(hiddenD, hiddenD).to(self.device)
         self.linearHidden2 = torch.nn.Linear(hiddenD, hiddenD).to(self.device)
-        self.linearHidden3 = torch.nn.Linear(hiddenD, hiddenD).to(self.device)
+        #self.linearHidden3 = torch.nn.Linear(hiddenD, hiddenD).to(self.device)
         self.linearOut = torch.nn.Linear(hiddenD, outputD).to(self.device)
 
     def forward(self, x):
         h_relu = self.linearBegin(x).clamp(min=0)
         #for h in range(len(self.linearHiddens)):
-        #    h_relu = self.linearHiddens[h](h_relu)
-        h_relu1 = self.linearHidden1(h_relu)
-        h_relu2 = self.linearHidden2(h_relu1)
-        h_relu3 = self.linearHidden3(h_relu2)
-        y_pred = self.linearOut(h_relu3).clamp(min=0)
+        #    h_relu = self.linearHiddens[h](h_relu).clamp(min=0)
+        h_relu1 = self.linearHidden1(h_relu).clamp(min=0)
+        h_relu2 = self.linearHidden2(h_relu1).clamp(min=0)
+        #h_relu3 = self.linearHidden3(h_relu2).clamp(min=0)
+        y_pred = self.linearOut(h_relu2).clamp(min=0)
         return y_pred
 
 class TorchModel(object):
+    FCN = 'TorchFCN'
     def __init__(self, inputD, outputD, hiddenC = 3, hiddenD = 36, 
-                 batch_size = 30, learning_rate = 0.001):
+                 batch_size = 30, lr = 0.001, Model = TorchFCNModel):
         super()
         self.batch_size = batch_size
         self.loss_fn = torch.nn.MSELoss()
         self.loss_list = []
-        self.learning_rate = learning_rate
+        self.lr = lr
         self.device = torch.device("cuda:0" 
                                    if torch.cuda.is_available() else "cpu")
         print()
         print('Training on', self.device)
-        self.model = TorchFCNModel(inputD, outputD, hiddenC, hiddenD)
+        self.model = Model(inputD, outputD, hiddenC, hiddenD)
         self.model.to(self.device)
 
     def getFCNModel(self, x, y, batch_size):
@@ -75,14 +76,14 @@ class TorchModel(object):
         print('\r%s' % log, end ='\r')
         return 
             
-    def fit(self, x, y, epochs):
-        print()
+    def fit(self, x, y, batch_size, epochs):
+        self.batch_size = batch_size
         totalSampleCount = x.shape[0]
         batchPerEpoch = int(totalSampleCount / self.batch_size) 
         x, y = torch.from_numpy(x).float(), torch.from_numpy(y).float()
-        self.optimizer = torch.optim.Adam(self.model.parameters(), 
-                                          lr=self.learning_rate)
-
+        #self.optimizer = torch.optim.Adam(self.model.parameters(), lr = self.lr)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), 
+                                         lr = self.lr, momentum = 0.9)
         for epoch in range(epochs):
             start = time.time()
             print('\nEpoch %d/%d' % (epoch, epochs))

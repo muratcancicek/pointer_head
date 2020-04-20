@@ -2,6 +2,11 @@ from sklearn.preprocessing import MinMaxScaler
 import numpy as np
 
 class TrainingDataHandler(object):
+    POSE_DATA = 'Pose'
+    POSE_DELTA_DATA = 'PoseDelta'
+    ANGLE_DATA = 'Angle'
+    ANGLE_DELTA_DATA = 'AngleDelta'
+
     def __init__(self):
         super()
         self.x_sc = None
@@ -149,26 +154,17 @@ class TrainingDataHandler(object):
                 train.append((postData, data))
         x, y, yList = self.mergeAllPairsAsXY(train + test)
         test, setRatio = self._getYTestAndRatio(y, yList, test, setRatio)
-        y = y[:, :1]
-        test = [y[:, :1] for y in test]
+        #y = y[:, :1]
+        #test = [y[:, :1] for y in test]
         x_scaled, y_scaled = self.scaleData(x, y)
         expData = self.separateXY(x_scaled, y_scaled, setRatio)
         return expData + (test, )
 
-    def getExpPoseDataFromAllSubjectsAsPairs(self, handler, sList):
+    def getExpDataFromAllSubjectsAsPairs(self, pairGetter, sList):
         sList = [str(subjId) for subjId in sList]
         mergedPairs = {}
         for subjId in sList:
-            pairs = handler.getAllHeadPoseToPointingPairs(subjId)
-            for tName, (data, postData) in pairs.items():
-                mergedPairs[tName+'_'+subjId] = (data, postData) 
-        return mergedPairs
-
-    def getExpPoseDataFromAllSubjectsAsPairs(self, handler, sList):
-        sList = [str(subjId) for subjId in sList]
-        mergedPairs = {}
-        for subjId in sList:
-            pairs = handler.getAllHeadAngleToPointingPairs(subjId)
+            pairs = pairGetter(subjId)
             for tName, (data, postData) in pairs.items():
                 mergedPairs[tName+'_'+subjId] = (data, postData) 
         return mergedPairs
