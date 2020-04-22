@@ -88,13 +88,13 @@ os.environ["CUDA_VISIBLE_DEVICES"] = '3'
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handler = DataHandler() 
-    runner = DLExpRunner(handler, lr = 0.01, epochs = 20, batch_size = 3)
+    runner = DLExpRunner(handler, lr = 0.01, epochs = 3, batch_size = 1)
      # os.listdir(DataHandler.Paths.PostDataFolder)
     sList = [1, 2, 3] # ['1', '1111', '2', '2222', '3', '3333']
     #  FCNPoseExpOnSubjectList_DELTA_DELTA['1'] # 
     #expSettings = (sList, TrainingDataHandler.POSE_DATA, DLExpRunner.TORCH_FCN)
-    expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.TORCH_FCN)
-    #expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.KERAS_FCN)
+    #expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.TORCH_FCN)
+    expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.KERAS_FCN)
     runner.runExpOnSubjectList(*expSettings)
     
 def main(DataHandler):

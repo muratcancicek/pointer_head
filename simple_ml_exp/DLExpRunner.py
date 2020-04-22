@@ -130,7 +130,10 @@ class DLExpRunner(object):
         self._expName = self.KERAS_FCN
         samplePair = pairs[list(pairs.keys())[0]]
         inputD, outputD = samplePair[1].shape[-1], samplePair[0].shape[-1]
-        self._model = KerasRunner.getKerasFCNModel(inputD, outputD, 
+        #self._model = KerasRunner.getKerasFCNModel(inputD, outputD, 
+        #                                           hiddenC = 2, hiddenD = 36,
+        #                                           lr = self._lr)
+        self._model = KerasRunner.getKerasLSTMModel(inputD, outputD, 
                                                    hiddenC = 2, hiddenD = 36,
                                                    lr = self._lr)
         return self._runExpOnAllPairsAsXY(pairs, self._model, fromDelta)

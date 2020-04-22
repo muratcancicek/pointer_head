@@ -24,6 +24,18 @@ class KerasRunner(object):
             model.add(Dense(n, activation = 'relu'))
         model.add(Dense(units = outputD))
         adam = Adam(lr = lr)
-        model.compile(loss='mse', optimizer= 'adam')
+        model.compile(loss='mse', optimizer= 'sgd')
         return model
     
+     
+    @staticmethod
+    def getKerasLSTMModel(inputD, outputD, hiddenC = 2, hiddenD = 36, lr = 0.0001): 
+        model = Sequential()
+        model.add(LSTM(units = hiddenD, return_sequences = True, 
+                           input_shape = (1, inputD)))    
+
+        model.add(Dense(units = outputD))
+
+        model.compile(optimizer = 'adam', loss = 'mean_squared_error')
+
+        return model
