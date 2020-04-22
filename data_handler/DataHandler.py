@@ -313,6 +313,13 @@ class DataHandler(object):
         return {tName: (data, postData[:, PDG.pose_b_ind+3:PDG.pose_e_ind])
                for tName, (data, postData) in pairsSet.items()}
             
+    def getAllLandmarksToPointingPairs(self, subjId): 
+        if isinstance(subjId, int): subjId = str(subjId)
+        pairsSet = self.getAllDatasetPairsFor(subjId)
+        PDG = PostDataGenerator
+        return {tName: (data, postData[:, PDG.landmark_b_ind:PDG.landmark_e_ind])
+               for tName, (data, postData) in pairsSet.items()}
+            
     def getDefaultTestTrailsForSubj(self, subjId): 
         if isinstance(subjId, int): subjId = str(subjId)
         test = ['infinity_slow', 'random1', 'horizontal_part1_slow']

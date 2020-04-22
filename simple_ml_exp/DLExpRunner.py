@@ -11,7 +11,9 @@ import os
 
 class DLExpRunner(object):
     KERAS_FCN = 'KerasFCN' 
+    KERAS_LSTM = 'KerasLSTM' 
     TORCH_FCN = 'TorchFCN'
+    TORCH_LSTM = 'TorchLSTM' 
 
     def __init__(self, dataHandler, modelType = 'FCN', trainDataHandler = None, 
                  analyzer = None, lr = 0.001, epochs = 50, batch_size = 10):
@@ -73,7 +75,7 @@ class DLExpRunner(object):
         return stringlist 
 
     def getExpSummary(self, expData, y_hat, hist, t): 
-        x_train, y_train, x_test, y_test, yList = expData
+        trainSet, testSet, x_train, y_train, x_test, y_test, yList = expData
         print()
         w = -1 #w(, )#
         hist = hist if isinstance(hist, dict) else hist.history
@@ -81,16 +83,22 @@ class DLExpRunner(object):
         mseText = 'Train MSE: %.4f / Test MSE: %.4f' % (t_mse, mse)
         print(mseText)
         stringlist = []
-        tx, ty =  x_train.shape[1], y_train.shape[1]
-        input = 'Pose' if ty == 6 else 'Gaze'
-        exText = 'Head %s Change -> Target Movement' % input
+        if isinstance(x_train, list):
+            tx, ty = x_train[0].shape[-1], y_train[0].shape[-1]
+            tr = sum([x.shape[0] for x in x_train])
+            ts = sum([x.shape[0] for x in x_test]) 
+        else:
+            tx, ty =  x_train.shape[-1], y_train.shape[-1]
+            tr, ts = x_train.shape[0], x_test.shape[0]
+        input = 'Head Pose' if ty == 6 else 'Head Gaze'
+        if ty > 6: input = 'Landmark Coordinates'
+        exText = '%s -> Target Movement' % input
         mText = '# of Input Features (%d) -> Outputs (%d)' % (tx, ty)
-        tr, ts = x_train.shape[0], x_test.shape[0]
         ratText = 'Test/Train & TrainToAllRatio:' + \
             '%d/%d & %.2f' % (ts, tr, tr/(tr+ts))
         epText = 'epochs = %d, batch_size = %d'%(self._epochs, self._batch_size)
-        lrText = 'Optimizer: %s, Learning Rate = %.5f' % \
-            (self._modelType, self._lr)
+        lrText = 'Model: %s, Optimizer: SGD, Learning Rate = %.5f' % \
+            (self._expName, self._lr)
         t = ('%d sec' % t) if t < 60 else ('%d min %d sec' % (t/60, t%60))
         trText = 'Total Experiment Duration (incl. training): %s' % t
         stringlist = [exText, mText, ratText, '', 
@@ -101,20 +109,49 @@ class DLExpRunner(object):
         #stringlist = self._addTrailNamesToExpSummary(stringlist)
         return stringlist
        
-    def _runExpOnAllPairsAsXY(self, pairs, model, fromDelta = False): 
+    def _runFCNExpOnAllPairsAsXY(self, pairs, model, fromDelta = False): 
         start = time.time()
         if fromDelta:
             getExpData = self._tdHandler.getExpDataAsDeltaFromAllPairsAsXY
         else:
             getExpData = self._tdHandler.getExpDataFromAllPairsAsXY
         expData = getExpData(pairs, 1, self._trailsToTest)
-        x_train, y_train, x_test, y_test, yList = expData
+        trainSet, testSet, x_train, y_train, x_test, y_test, yList = expData
         h = model.fit(x_train, y_train, self._batch_size, self._epochs)
         y_hat = model.predict(x_test) 
         results = self.getExpResults(y_test, y_hat, yList, fromDelta)
         t = time.time() - start
         summary = self.getExpSummary(expData, y_hat, h, t)
         return results, summary
+       
+    def _fitLSTM(self, model, x_train, y_train):
+        if  self._expName == self.TORCH_LSTM:
+            h = model.fitLSTM(x_train, y_train, self._batch_size, self._epochs)
+            return model, h
+        else:
+            from .KerasRunner import KerasRunner 
+            return KerasRunner.fitLSTM(model, x_train, y_train, 
+                                       self._batch_size, self._epochs)
+       
+    def _runLSTMExpOnAllPairsAsXY(self, pairs, model):
+        start = time.time()
+        expData = self._tdHandler.\
+            getExpDataFromAllPairsAsSequential(pairs, 1, self._trailsToTest)
+        trainSet, testSet, x_train, y_train, x_test, y_test, yList = expData
+        model, h =self._fitLSTM(model, x_train, y_train)
+        y_hat = [model.predict(x_test_sub)  for x_test_sub in x_test]
+        y_hat = np.concatenate(y_hat, axis = 0)
+        y_hat = y_hat.reshape(y_hat.shape[0], y_hat.shape[-1])
+        results = self.getExpResults(y_test, y_hat, yList, fromDelta = False)
+        t = time.time() - start
+        summary = self.getExpSummary(expData, y_hat, h, t)
+        return results, summary
+       
+    def _runExpOnAllPairsAsXY(self, pairs, model, fromDelta = False, seq = False): 
+        if seq:
+            return self._runLSTMExpOnAllPairsAsXY(pairs, model)
+        else:
+            return self._runFCNExpOnAllPairsAsXY(pairs, model, fromDelta)
         
     def chooseTrainDataGetter(self, dataKind): 
         handler = TrainingDataHandler
@@ -123,6 +160,8 @@ class DLExpRunner(object):
             getter = self._dataHandler.getAllHeadPoseToPointingPairs
         if dataKind in [handler.ANGLE_DATA, handler.ANGLE_DELTA_DATA]:
             getter = self._dataHandler.getAllHeadAngleToPointingPairs
+        if dataKind in [handler.LANDMARK_DATA]:
+            getter = self._dataHandler.getAllLandmarksToPointingPairs
         return getter
         
     def _runKerasFCNExpOnAllPairsAsXY(self, pairs, fromDelta = False): 
@@ -130,23 +169,41 @@ class DLExpRunner(object):
         self._expName = self.KERAS_FCN
         samplePair = pairs[list(pairs.keys())[0]]
         inputD, outputD = samplePair[1].shape[-1], samplePair[0].shape[-1]
-        #self._model = KerasRunner.getKerasFCNModel(inputD, outputD, 
-        #                                           hiddenC = 2, hiddenD = 36,
-        #                                           lr = self._lr)
+        self._model = KerasRunner.getKerasFCNModel(inputD, outputD, 
+                                                   hiddenC = 6, hiddenD = 136,
+                                                   lr = self._lr)
+        return self._runExpOnAllPairsAsXY(pairs, self._model, fromDelta)
+       
+        
+    def _runKerasLSTMExpOnAllPairsAsXY(self, pairs, fromDelta = False): 
+        from .KerasRunner import KerasRunner 
+        self._expName = self.KERAS_LSTM
+        samplePair = pairs[list(pairs.keys())[0]]
+        inputD, outputD = samplePair[1].shape[-1], samplePair[0].shape[-1] 
         self._model = KerasRunner.getKerasLSTMModel(inputD, outputD, 
                                                    hiddenC = 2, hiddenD = 36,
                                                    lr = self._lr)
-        return self._runExpOnAllPairsAsXY(pairs, self._model, fromDelta)
+        return self._runExpOnAllPairsAsXY(pairs, self._model, fromDelta, seq = True)
        
     def _runTorchFCNExpOnAllPairsAsXY(self, pairs, fromDelta = False): 
         from .TorchModel import TorchModel, TorchFCNModel
         self._expName = self.TORCH_FCN
         samplePair = pairs[list(pairs.keys())[0]]
         inputD, outputD = samplePair[1].shape[-1], samplePair[0].shape[-1]
-        self._model = TorchModel(inputD, outputD, hiddenC = 2, hiddenD = 36,
+        self._model = TorchModel(inputD, outputD, hiddenC = 6, hiddenD = 136,
                                  batch_size = self._batch_size, lr = self._lr,
                                  Model = TorchFCNModel)
         return self._runExpOnAllPairsAsXY(pairs, self._model, fromDelta)
+       
+    def _runTorchLSTMExpOnAllPairsAsXY(self, pairs, fromDelta = False): 
+        from .TorchModel import TorchModel, TorchLSTMModel
+        self._expName = self.TORCH_LSTM
+        samplePair = pairs[list(pairs.keys())[0]]
+        inputD, outputD = samplePair[1].shape[-1], samplePair[0].shape[-1]
+        self._model = TorchModel(inputD, outputD, hiddenC = 2, hiddenD = 136,
+                                 batch_size = self._batch_size, lr = self._lr,
+                                 Model = TorchLSTMModel)
+        return self._runExpOnAllPairsAsXY(pairs, self._model, fromDelta, seq = True)
 
     def runKerasFCNExpOnAllPairsAsXY(self, pairs): 
         return self._runKerasFCNExpOnAllPairsAsXY(pairs, fromDelta = False)
@@ -159,14 +216,26 @@ class DLExpRunner(object):
 
     def runTorchFCNDeltaExpOnAllPairsAsXY(self, pairs): 
         return self._runTorchFCNExpOnAllPairsAsXY(pairs, fromDelta = True)
+
+    def runKerasLSTMExpOnAllPairsAsXY(self, pairs): 
+        return self._runKerasLSTMExpOnAllPairsAsXY(pairs, fromDelta = False)
+
+    def runTorchLSTMExpOnAllPairsAsXY(self, pairs): 
+        return self._runTorchLSTMExpOnAllPairsAsXY(pairs, fromDelta = False)
+
           
     def chooseExpToRun(self, exp): 
         handler = TrainingDataHandler
-        if self._inputName in [handler.POSE_DATA, handler.ANGLE_DATA]:
+        if self._inputName in [handler.POSE_DATA, handler.ANGLE_DATA, 
+                               handler.LANDMARK_DATA]:
             if exp == DLExpRunner.KERAS_FCN:
                 expRunner = self.runKerasFCNExpOnAllPairsAsXY
             if exp == DLExpRunner.TORCH_FCN:
                 expRunner = self.runTorchFCNExpOnAllPairsAsXY
+            if exp == DLExpRunner.KERAS_LSTM:
+                expRunner = self.runKerasFCNExpOnAllPairsAsXY
+            if exp == DLExpRunner.TORCH_LSTM:
+                expRunner = self.runTorchLSTMExpOnAllPairsAsXY
         if self._inputName in[handler.POSE_DELTA_DATA,handler.ANGLE_DELTA_DATA]:
             if exp == DLExpRunner.KERAS_FCN:
                 expRunner = self.runKerasFCNDeltaExpOnAllPairsAsXY

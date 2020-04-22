@@ -10,7 +10,8 @@ elif os.name == 'posix':
     from tensorflow.keras.layers import Dropout
     from tensorflow.keras.layers import Dense
     from tensorflow.keras.layers import LSTM
-
+from random import Random
+    
 class KerasRunner(object):
      
     @staticmethod
@@ -26,8 +27,7 @@ class KerasRunner(object):
         adam = Adam(lr = lr)
         model.compile(loss='mse', optimizer= 'sgd')
         return model
-    
-     
+         
     @staticmethod
     def getKerasLSTMModel(inputD, outputD, hiddenC = 2, hiddenD = 36, lr = 0.0001): 
         model = Sequential()
@@ -39,3 +39,22 @@ class KerasRunner(object):
         model.compile(optimizer = 'adam', loss = 'mean_squared_error')
 
         return model
+    
+    @staticmethod
+    def fitLSTM(self, model, xList, yList, batch_size, epochs):
+        totalSampleCount = sum([x.shape[0] for x in xList])
+        batchPerEpoch = len(xList)
+        r = Random()
+        for epoch in range(epochs):
+            start = time.time()
+            print('\nEpoch %d/%d' % (epoch+1, epochs))
+            trainingData = list(zip(xList, yList))
+            r.shuffle(trainingData)
+            i = 0
+            for currentBatch, (xx, yy) in enumerate(trainingData):
+                self.batch_size = xx.shape[0]
+                i += 1
+                h = model.fit(xx, yy, batch_size, 1)
+                print('\rEpoch %d/%d' % (i, totalSampleCount, \
+                    h.history['loss'][-1]), end = '\r')
+        return model, h

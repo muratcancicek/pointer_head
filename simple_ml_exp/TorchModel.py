@@ -1,6 +1,8 @@
 import time
 import numpy as np
 import torch
+from random import Random
+torch.manual_seed(1)
 
 class TorchFCNModel(torch.nn.Module):
     def __init__(self, inputD, outputD, hiddenC = 2, hiddenD = 36):
@@ -23,8 +25,31 @@ class TorchFCNModel(torch.nn.Module):
         h_relu1 = self.linearHidden1(h_relu).clamp(min=0)
         h_relu2 = self.linearHidden2(h_relu1).clamp(min=0)
         #h_relu3 = self.linearHidden3(h_relu2).clamp(min=0)
-        y_pred = self.linearOut(h_relu2).clamp(min=0)
+        y_pred = self.linearOut(h_relu2)#.clamp(min=0)
         return y_pred
+
+class TorchLSTMModel(torch.nn.Module):
+    def __init__(self, inputD, outputD, hiddenC = 2, hiddenD = 36):
+        super(TorchLSTMModel, self).__init__()
+        self.device = torch.device("cuda:0" 
+                                   if torch.cuda.is_available() else "cpu")
+        self.inputD, self.outputD = inputD, outputD
+        self.hiddenC, self.hiddenD = hiddenC, hiddenD
+        self.lstm1 = torch.nn.LSTM(inputD, hiddenD).to(self.device)
+        self.linearOut = torch.nn.Linear(hiddenD, outputD).to(self.device)
+        self.nlayers = 1
+
+    def forward(self, x):
+        lstm_out, hidden = self.lstm1(x)
+        y_pred = self.linearOut(lstm_out)
+        return y_pred
+
+    
+    def init_hidden(self, bsz):
+        weight = next(self.parameters())
+        return (weight.new_zeros(self.nlayers, bsz, self.hiddenD),
+                    weight.new_zeros(self.nlayers, bsz, self.hiddenD))
+
 
 class TorchModel(object):
     FCN = 'TorchFCN'
@@ -42,19 +67,6 @@ class TorchModel(object):
         self.model = Model(inputD, outputD, hiddenC, hiddenD)
         self.model.to(self.device)
 
-    def getFCNModel(self, x, y, batch_size):
-        self.batch_size, self.inputD, self.hiddenD, self.outputD = \
-            batch_size, x.shape[-1], 36, y.shape[-1]
-
-        self.model = torch.nn.Sequential(
-            torch.nn.Linear(self.inputD, self.hiddenD),
-            torch.nn.ReLU(),
-            torch.nn.Linear(self.hiddenD, self.outputD),
-        )
-        self.to(self.device)
-        return self
-    
-
     def _getProcessBar(self, epoch, batch, batchPerEpoch):
         barLength = 40 
         if batch < batchPerEpoch: 
@@ -65,10 +77,10 @@ class TorchModel(object):
             return '=' * barLength
 
     def _log(self, epoch, batch, batchPerEpoch, 
-             totalSampleCount, computation_time, epoch_loss):
+             totalSampleCount, computation_time, epoch_loss, samplesSoFar = None):
         draft = '%d/%d [%s] - %ds %dus/sample loss: %.4f'
         epoch, batch = epoch + 1, batch + 1
-        samplesSoFar = batch * self.batch_size
+        if samplesSoFar is None: samplesSoFar = batch * self.batch_size
         bar = self._getProcessBar(epoch, batch, batchPerEpoch)
         computation_rate = int((samplesSoFar / computation_time))
         log = draft % (samplesSoFar, totalSampleCount, bar, 
@@ -86,7 +98,7 @@ class TorchModel(object):
                                          lr = self.lr, momentum = 0.9)
         for epoch in range(epochs):
             start = time.time()
-            print('\nEpoch %d/%d' % (epoch, epochs))
+            print('\nEpoch %d/%d' % (epoch+1, epochs))
             permutation = torch.randperm(x.size()[0])
             for batch in range(0, totalSampleCount, self.batch_size):
                 indices = permutation[batch:batch+self.batch_size]
@@ -112,6 +124,45 @@ class TorchModel(object):
                       totalSampleCount, computation_time, epoch_loss)
             torch.cuda.empty_cache()
         return {'loss': [sum(self.loss_list[-batchPerEpoch:])/batchPerEpoch]}
+
+    def fitLSTM(self, xList, yList, batch_size, epochs):
+        totalSampleCount = sum([x.shape[0] for x in xList])
+        batchPerEpoch = len(xList)
+        self.optimizer = torch.optim.SGD(self.model.parameters(), 
+                                         lr = self.lr, momentum = 0.9)
+        r = Random()
+
+        for epoch in range(epochs):
+            start = time.time()
+            print('\nEpoch %d/%d' % (epoch+1, epochs))
+            trainingData = list(zip(xList, yList))
+            r.shuffle(trainingData)
+            i = 0
+            for currentBatch, (xx, yy) in enumerate(trainingData):
+                self.batch_size = xx.shape[0]
+                i += xx.shape[0]
+                xxx, yyy = torch.from_numpy(xx).float(),torch.from_numpy(yy).float()
+                self.model.zero_grad()
+                
+                y_pred = self.model(xxx)
+
+                loss = self.loss_fn(y_pred, yyy)
+                self.loss_list.append(loss.item())
+
+                self.optimizer.zero_grad()
+
+                loss.backward() 
+                self.optimizer.step()
+
+                #currentBatch = batch / self.batch_size
+                computation_time = time.time() - start
+                self._log(epoch, currentBatch, batchPerEpoch, totalSampleCount,
+                          computation_time, self.loss_list[-1], i) 
+
+            self._log(epoch, currentBatch, batchPerEpoch, 
+                      totalSampleCount, computation_time, self.loss_list[-1], i)
+            torch.cuda.empty_cache()
+        return {'loss': [self.loss_list[-1]]}
 
     def predict(self, x):
         x = torch.from_numpy(x).float().to(self.device)

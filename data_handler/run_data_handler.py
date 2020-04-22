@@ -9,7 +9,7 @@ def testDataHandler():
     #handler.playSubjectTrailWithAllInputs(2, 'random4')#(2, 'vertical')(1, 'infinity')
     #handler.play3DSubjectTrailWithHeadGaze(3, 'random4')(3, 'random4')
     #handler.savePostDataFromSubjectVideo(1, 'infinity')
-    #for i in range(1, 4): handler.saveAllPostDataForSubject(i)
+    for i in range(5, 6): handler.saveAllPostDataForSubject(i)
     #handler.replaySubjectVideoWithPostData(3, 'random4')#(2, 'vertical')
     #handler.record3DSubjectTrailWithHeadGaze(1, 'zigzag')
     #handler.record3DSubjectTrailWithHeadGaze(2, 'zigzag')

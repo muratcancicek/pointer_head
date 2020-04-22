@@ -55,8 +55,10 @@ class LandmarkDetector(FacialLandmarkDetectorABC):
     def loadTFGraph(tf_model_path):
         detection_graph = tf.Graph()
         with detection_graph.as_default():
-            od_graph_def = tf.compat.v1.GraphDef()
-            with tf.compat.v2.io.gfile.GFile(tf_model_path, 'rb') as fid:
+            #od_graph_def = tf.compat.v1.GraphDef()
+            #with tf.compat.v2.io.gfile.GFile(tf_model_path, 'rb') as fid:
+            od_graph_def = tf.GraphDef()
+            with tf.gfile.GFile(tf_model_path, 'rb') as fid:
                 serialized_graph = fid.read()
                 od_graph_def.ParseFromString(serialized_graph)
                 tf.import_graph_def(od_graph_def, name='')
@@ -70,7 +72,8 @@ class LandmarkDetector(FacialLandmarkDetectorABC):
             tf_model_path = YinsFacialLandmarkDetector_tf_model_path
 
         self.__graph = self.loadTFGraph(tf_model_path)
-        self.__sess = tf.compat.v1.Session(graph = self.__graph)
+        self.__sess = tf.Session(graph = self.__graph)
+        #self.__sess = tf.compat.v1.Session(graph = self.__graph)
         self.__cnn_input_size = 128
 
     def __detectFaceImage(self, frame):

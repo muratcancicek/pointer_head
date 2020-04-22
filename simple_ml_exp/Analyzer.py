@@ -180,7 +180,7 @@ class Analyzer(object):
     def saveAllSubjectsplotted(self, handler, sList):
         trails = handler.readAllTrails()
         for tName in trails:
-            name = '%s_3R30FSubjects_HeadGazePlots.pdf' % (tName) # Real
+            name = '%s_5RSubjects_HeadGazePlots.pdf' % (tName) # Real
             path = handler.Paths.HeadGazeGraphsCommonFolder + handler.Paths.sep + name
             img = self.plotAllSubjectsFor(handler, sList, tName)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

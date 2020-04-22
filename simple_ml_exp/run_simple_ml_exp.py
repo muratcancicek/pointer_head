@@ -21,7 +21,7 @@ def get4Handlers(DataHandler, subjId):
 def testRMSEs(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handlers = get4Handlers(DataHandler, subjId)
-    analyzer = Analyzer()
+    analyzer = Analyzer() 
     rmse = analyzer.getHeadGazeFilterRMSEsFor(handlers, subjId, tName)
     #rmse = analyzer.getHeadGazeFilterRMSEsForSubj(handlers, subjId)
     print('\n'.join(rmse))
@@ -77,24 +77,27 @@ def testNoise(DataHandler, subjId = 1, tName = 'infinity'):
 def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
      #['1', '2', '3'] # 
-    sList = os.listdir(DataHandler.Paths.PostDataFolder)
+    sList = range(1, 6)#  os.listdir(DataHandler.Paths.PostDataFolder)
     handler = DataHandler()
     analyzer = Analyzer()
     #analyzer.plotAllSubjectsFor(handler, sList, tName) 
     analyzer.saveAllSubjectsplotted(handler, sList) 
     
-os.environ["CUDA_VISIBLE_DEVICES"] = '3'
+os.environ["CUDA_VISIBLE_DEVICES"] = '4'
 
 def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handler = DataHandler() 
-    runner = DLExpRunner(handler, lr = 0.01, epochs = 3, batch_size = 1)
+    runner = DLExpRunner(handler, lr = 0.1, epochs = 5, batch_size = 1)
      # os.listdir(DataHandler.Paths.PostDataFolder)
-    sList = [1, 2, 3] # ['1', '1111', '2', '2222', '3', '3333']
-    #  FCNPoseExpOnSubjectList_DELTA_DELTA['1'] # 
-    #expSettings = (sList, TrainingDataHandler.POSE_DATA, DLExpRunner.TORCH_FCN)
+    sList = range(1, 6)# ['1', '1111', '2', '2222', '3', '3333']
+    #  FCNPoseExpOnSubjectList_DELTA_DELTA[1, 2, 3] # ['1'] # 
+    #expSettings = (sList, TrainingDataHandler.LANDMARK_DATA, DLExpRunner.TORCH_FCN)
     #expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.TORCH_FCN)
-    expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.KERAS_FCN)
+    #expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.KERAS_FCN)
+    #expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.TORCH_LSTM)
+    expSettings = (sList, TrainingDataHandler.LANDMARK_DATA, DLExpRunner.TORCH_LSTM)
+    expSettings = (sList, TrainingDataHandler.LANDMARK_DATA, DLExpRunner.KERAS_LSTM)
     runner.runExpOnSubjectList(*expSettings)
     
 def main(DataHandler):

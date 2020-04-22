@@ -6,6 +6,7 @@ class TrainingDataHandler(object):
     POSE_DELTA_DATA = 'PoseDelta'
     ANGLE_DATA = 'Angle'
     ANGLE_DELTA_DATA = 'AngleDelta'
+    LANDMARK_DATA = 'Landmark'
 
     def __init__(self):
         super()
@@ -138,7 +139,7 @@ class TrainingDataHandler(object):
         y = y[:, :1]
         test = [y[:, :1] for y in test]
         expData = self.getExpDataAsDeltaFromPair(x, y, setRatio)
-        return expData + (test, )
+        return (train, test) + expData + (test, )
 
 
     def getExpDataFromAllPairsAsXY(self, pairs, 
@@ -153,12 +154,10 @@ class TrainingDataHandler(object):
             else:
                 train.append((postData, data))
         x, y, yList = self.mergeAllPairsAsXY(train + test)
-        test, setRatio = self._getYTestAndRatio(y, yList, test, setRatio)
-        #y = y[:, :1]
-        #test = [y[:, :1] for y in test]
+        test1, setRatio = self._getYTestAndRatio(y, yList, test, setRatio)
         x_scaled, y_scaled = self.scaleData(x, y)
         expData = self.separateXY(x_scaled, y_scaled, setRatio)
-        return expData + (test, )
+        return (train, test) + expData + (test1, )
 
     def getExpDataFromAllSubjectsAsPairs(self, pairGetter, sList):
         sList = [str(subjId) for subjId in sList]
@@ -168,3 +167,23 @@ class TrainingDataHandler(object):
             for tName, (data, postData) in pairs.items():
                 mergedPairs[tName+'_'+subjId] = (data, postData) 
         return mergedPairs
+
+    def _unmergeTrails(self, arr, pairs):
+        trails = []
+        for data, postData in pairs:
+            trails.append(arr[:data.shape[0]])
+            arr = arr[data.shape[0]:]
+        return trails
+
+    def getExpDataFromAllPairsAsSequential(self, pairs, 
+                                          setRatio = 0.6, testSet = None):
+        expData = self.getExpDataFromAllPairsAsXY(pairs, setRatio, testSet)
+        trainPairs, testPairs, x_train, y_train, x_test, y_test, yList = expData
+        x_train = x_train.reshape(x_train.shape[0], 1, x_train.shape[-1])
+        y_train = y_train.reshape(y_train.shape[0], 1, y_train.shape[-1])
+        x_test = x_test.reshape(x_test.shape[0], 1, x_test.shape[-1])
+        x_train = self._unmergeTrails(x_train, trainPairs)
+        y_train = self._unmergeTrails(y_train, trainPairs)
+        x_test = self._unmergeTrails(x_test, testPairs)
+        #y_test = self._unmergeTrails(y_test, testPairs)
+        return trainPairs, testPairs, x_train, y_train, x_test, y_test, yList
