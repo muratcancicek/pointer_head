@@ -60,10 +60,9 @@ class InputEstimationVisualizer(object):
         return self.showFrame(frame, delay)
     
     def playSubjectVideoWithAllInputs(self, estimator, streamer):
-        print(0)
         for frame in streamer:
             annotations = \
-                estimator.estimateReverseInputValuesWithAnnotations(frame)
+                estimator.estimateInputValuesWithAnnotations(frame)
             inputValues, pPts, landmarks = annotations
             pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
             inputValues[0] = frame.shape[1] - inputValues[0]
