@@ -102,13 +102,13 @@ class Analyzer(object):
             ax1 = fig.add_subplot(211)
         ax1.set_title(title)
       #  self.plotAx(ax1, data, 0, 'X', (0,1920) if yLim else None)
-        self.plotAx(ax1, data, 0, 'X', (-960, 1920+960) if yLim else None)
+        self.plotAx(ax1, data, 0, 'X')#, (-960, 1920+960) if yLim else None)
         if data[0][0].shape[-1] == 1:
             return fig
 
         ax2 = fig.add_subplot(212)
        # self.plotAx(ax2, data, 1, 'Y', (0,1080) if yLim else None)
-        self.plotAx(ax2, data, 1, 'Y', (-540, 1080+540) if yLim else None)
+        self.plotAx(ax2, data, 1, 'Y')#, (-540, 1080+540) if yLim else None)
         if plot:
             plt.show()
         return fig
@@ -180,7 +180,7 @@ class Analyzer(object):
     def saveAllSubjectsplotted(self, handler, sList):
         trails = handler.readAllTrails()
         for tName in trails:
-            name = '%s_5RSubjects_HeadGazePlots.pdf' % (tName) # Real
+            name = '%s_2RSubjects_HeadGazePlots.pdf' % (tName) # Real
             path = handler.Paths.HeadGazeGraphsCommonFolder + handler.Paths.sep + name
             img = self.plotAllSubjectsFor(handler, sList, tName)
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)

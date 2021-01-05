@@ -36,27 +36,27 @@ def testCorrelation(DataHandler, subjId = 1, tName = 'infinity'):
     corr = analyzer.getHeadGazeFilterCorrelForSubj(pairs)
     print('\n'.join(corr))
     
-def testPlottingFilters0(DataHandler, subjId = 1, tName = 'infinity'):
+def testPlottingFilters(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handlers = get4Handlers(DataHandler, subjId)
     Paths = DataHandler.Paths
     analyzer = Analyzer()
-    name = '%s_%s_HeadGazeFilters0.pdf' % (tName, subjId)
+    name = '%s_%s_HeadGazeFilters.pdf' % (tName, subjId)
     path = Paths.HeadGazeGraphsFolder + subjId + Paths.sep + name
     analyzer.plotHeadGazeFiltersFor(handlers, subjId, tName, path)
     #analyzer.plotHeadGazeFiltersForSubj(handlers, subjId, Paths)
 
-def testPlottingFilters(DataHandler, subjId = 1, tName = 'infinity'):
+def testPlottingFilters0(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     Paths = DataHandler.Paths
-    handler = DataHandler(postDataFolder = Paths.PostDataFolders + 'PostData_pnp\\') 
+    handler = DataHandler()
     analyzer = Analyzer()
     target, headGaze = handler.getHeadGazeToPointingDataFor(subjId, tName)
-    b = 0
-    data = [(target[b+150:], 'Target'), (headGaze[b:], 'HeadGaze')]
+    data = [(target, 'Target'), (headGaze, 'HeadGaze')]
+    #data = [(target[b+150:], 'Target'), (headGaze[b:], 'HeadGaze')]
     analyzer.plotHeadGazeAndPointingFo(*data,
                                        title=tName+'_'+subjId, yLim = True)
-    return newPose
+    return 
 
 def testNoise(DataHandler, subjId = 1, tName = 'infinity'):
     handler = DataHandler() 
@@ -76,8 +76,8 @@ def testNoise(DataHandler, subjId = 1, tName = 'infinity'):
 
 def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
-     #['1', '2', '3'] # 
-    sList = range(1, 6)#  os.listdir(DataHandler.Paths.PostDataFolder)
+     #, '2', '3'] # range(1, 6)
+    sList = ['2'] #  os.listdir(DataHandler.Paths.PostDataFolder)
     handler = DataHandler()
     analyzer = Analyzer()
     #analyzer.plotAllSubjectsFor(handler, sList, tName) 
@@ -90,7 +90,7 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     handler = DataHandler() 
     runner = DLExpRunner(handler, lr = 0.1, epochs = 5, batch_size = 1)
      # os.listdir(DataHandler.Paths.PostDataFolder)
-    sList = range(1, 6)# ['1', '1111', '2', '2222', '3', '3333']
+    sList = range(1, 4)# ['1', '1111', '2', '2222', '3', '3333']
     #  FCNPoseExpOnSubjectList_DELTA_DELTA[1, 2, 3] # ['1'] # 
     #expSettings = (sList, TrainingDataHandler.LANDMARK_DATA, DLExpRunner.TORCH_FCN)
     #expSettings = (sList, TrainingDataHandler.ANGLE_DATA, DLExpRunner.TORCH_FCN)
@@ -102,9 +102,9 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     
 def main(DataHandler):
    #testSimpleML0(DataHandler)
-   testKeras(DataHandler, 2)
-   #testCorrelation(DataHandler, 1)
-   #testPlottingFilters(DataHandler, 3, 'random4')
+   #testKeras(DataHandler, 2)
+   testCorrelation(DataHandler, 3)
+   #testPlottingFilters(DataHandler, 3, 'random5')
    #testNoise(DataHandler, 3), 
    #testPlottingAllSubjects(DataHandler, 3, 'zigzag')
 

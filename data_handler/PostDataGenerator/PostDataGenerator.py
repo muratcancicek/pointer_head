@@ -1,9 +1,9 @@
-#from .InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
-#from .InputEstimators.InputEstimationVisualizer import InputEstimationVisualizer
-#from .InputEstimators.Scene3DVisualizer import Scene3DVisualizer
-#from .InputEstimators.PoseEstimators import PoseEstimator, HeadGazer
-#from .InputEstimators.LandmarkDetectors import LandmarkDetector
-#from .InputEstimators.FaceDetectors import CVFaceDetector
+from .InputEstimators.MappingFunctions import Boundary, StaticMapping, DynamicMapping
+from .InputEstimators.InputEstimationVisualizer import InputEstimationVisualizer
+from .InputEstimators.Scene3DVisualizer import Scene3DVisualizer
+from .InputEstimators.PoseEstimators import PoseEstimator, HeadGazer
+from .InputEstimators.LandmarkDetectors import LandmarkDetector
+from .InputEstimators.FaceDetectors import CVFaceDetector
 from sklearn.preprocessing import MinMaxScaler
 from datetime import datetime
 from .. import Paths
