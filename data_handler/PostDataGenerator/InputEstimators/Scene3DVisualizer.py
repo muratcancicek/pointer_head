@@ -373,7 +373,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             #rv = str([math.degrees(t[0]) for t in pose[3:]])math.degrees(t)math.degrees(t)
             rv = str([t % 360 for t in pose[3:]])
             rv2 = str([t % 360 for t in pose2[3:]])
-            print('%s %s' % (rv, rv2))   
+            #print('%s %s' % (rv, rv2))   
             #print('\r%s %s %s' % (s, tv, rv), end = '\r')  
             all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
             f, k = self.showSceneFrameWithFace(frame, all3DPoints,
