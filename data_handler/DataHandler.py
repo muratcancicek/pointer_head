@@ -140,7 +140,7 @@ class DataHandler(object):
         gen, path = self.__playSubjectTrailWith(id, tName)
         gen.playSubjectVideoWithAllInputs(path)
         
-    def playSubjectTrailWithHeadGaze(self, id, tName):
+    def playSubjectVideoWithHeadGaze(self, id, tName):
         gen, path = self.__playSubjectTrailWith(id, tName)
         gen.playSubjectVideoWithHeadGaze(path)
 
