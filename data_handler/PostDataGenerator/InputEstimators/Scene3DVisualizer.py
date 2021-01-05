@@ -12,7 +12,7 @@ import os
 import io
 
 class Scene3DVisualizer(InputEstimationVisualizer):
-
+    
     def hex_to_rgb(self, value):
         value = value.lstrip('#')
         lv = len(value)
@@ -22,6 +22,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
     def __init__(self, sceneScale = 1,
                 landmarkColorStr = '#00ff00', screenColorStr = '#0000ff'):
         super()
+        self._frameNumber = 1
         self._size = (1920, 1080)
         self._sceneScale = sceneScale
         self._landmarkColorStr = landmarkColorStr # (0, 255, 0)
@@ -209,7 +210,9 @@ class Scene3DVisualizer(InputEstimationVisualizer):
 
     def addPointingValueToSceneFrame(self, scene, headGaze):
         font = cv2.FONT_HERSHEY_SIMPLEX
-        s = '%d px, %d px' % tuple([int(i) for i in headGaze[:2]])
+        log = (self._frameNumber,) + tuple(int(i) for i in headGaze[:2]) 
+        s = '%d) %d px, %d px' % log
+        self._frameNumber += 1
         p = (int(scene.shape[1]/2)-120,int(scene.shape[0]/2))
         scene = cv2.putText(scene, s, p, font, 1, (255,255,255), 1, cv2.LINE_AA)
         return scene
@@ -295,9 +298,9 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
             #k = self.showScene(all3DPoints)
             #f, k = self.showSceneFrame(all3DPoints)
-            f, k = self.showSceneFrameWithFace(frame, all3DPoints, estimator)
-            #f, k = self.showSceneFrameWithFace(frame, all3DPoints,
-            #                                   estimator, trailStreamer)
+            #f, k = self.showSceneFrameWithFace(frame, all3DPoints, estimator)
+            f, k = self.showSceneFrameWithFace(frame, all3DPoints,
+                                               estimator, trailStreamer)
             #k = self.showSceneWithTrail(all3DPoints, trailStreamer)
             #k = self.showProjectedFrame(frame, mappingFunc, landmarks)
             #k = self.showMergedLargeFrame(frame, all3DPoints,
@@ -365,14 +368,14 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             trailStreamer = (cv2.flip(tf, 1) for tf in trailStreamer)
         for headGaze, pose, landmarks, pPts, frame in jointStreamer:
             frame = self.addLandmarks(frame, landmarks.astype(int))
-            annotations = estimator.calculateHeadPoseWithAnnotations(frame, landmarks)
-            headGaze2, pPts, landmarks = annotations
-            pose2 = estimator.getHeadPose()
-            #estimator.poseCalculator.updatePose(pose)
+            #annotations = estimator.calculateHeadPoseWithAnnotations(frame, landmarks)
+            #headGaze2, pPts, landmarks = annotations
+            #pose2 = estimator.getHeadPose()
+            estimator.poseCalculator.updatePose(pose)
             #print(pose, pose2)
             #rv = str([math.degrees(t[0]) for t in pose[3:]])math.degrees(t)math.degrees(t)
-            rv = str([t % 360 for t in pose[3:]])
-            rv2 = str([t % 360 for t in pose2[3:]])
+            #rv = str([t % 360 for t in pose[3:]])
+            #rv2 = str([t % 360 for t in pose2[3:]])
             #print('%s %s' % (rv, rv2))   
             #print('\r%s %s %s' % (s, tv, rv), end = '\r')  
             all3DPoints = estimator.poseCalculator.calculateAll3DPoints()
