@@ -5,15 +5,14 @@ def testDataHandler():
     handler = DataHandler(readAllDataNow = True) 
     #handler.getHeadPoseToPointingDataFor(1, 'infinity')
     #subjectTrail = handler.saveAllPostDataForSubject(2)'zigzag'
-    #handler.playSubjectTrailWithHeadGaze(2, 'zigzag')
-    #handler.replay3DSubjectTrailWithHeadGaze(3, 'random5')
-    handler.replay3DSubjectTrailWithHeadGaze(3, 'zigzag_part1_slow')
-    #handler.savePostDataFromSubjectVideo(3, 'zigzag_part1_slow')#(1, 'infinity')(2, 'infinity')
-    #for i in range(5, 6): handler.saveAllPostDataForSubject(i)'vertical'
-    #handler.playSubjectTrailWithAllInputs(3, 'random1')#
-    #handler.replaySubjectVideoWithPostData(3, 'zigzag_part1_slow')#(2, 'vertical')
-    #handler.record3DSubjectTrailWithHeadGaze(1, 'zigzag')
-    #handler.record3DSubjectTrailWithHeadGaze(2, 'zigzag')
+    #handler.replay3DSubjectTrailWithHeadGaze(2, 'infinity')
+    #handler.savePostDataFromSubjectVideo(3, 'zigzag_part1_slow')
+    #for i in range(5, 6): handler.saveAllPostDataForSubject(i)
+    #handler.playSubjectTrailWithAllInputs(2, 'infinity')
+    #handler.playSubjectVideoWithHeadGaze(2, 'infinity')
+    handler.play3DSubjectTrailWithHeadGaze(2, 'infinity')
+    #handler.replaySubjectVideoWithPostData(2, 'infinity')
+    #handler.record3DSubjectTrailWithHeadGaze(3, 'infinity')
 
     #for i in range(1, 4):
     #    handler.record3DSubjectTrailWithHeadGaze(i, 'infinity')(2, 'vertical')#

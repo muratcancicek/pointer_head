@@ -25,6 +25,7 @@ class InputEstimationVisualizer(object):
     def addPointer(self, frame, outputValues):
         #boundaries = self._mappingFunc.getOutputBoundaries()
         outputSize = (1920, 1080)
+        outputValues[0] = outputSize[0] - outputValues[0]
         boundaries = Boundary(0, outputSize[0], 0, outputSize[1])
         (height, width, depth) = frame.shape
         (xRange, yRange, _) = boundaries.getRanges()
@@ -53,19 +54,44 @@ class InputEstimationVisualizer(object):
             return False
         else:
             return True
+    
+    def _addText(self, frame, text, pos, color, fontScale = 2):
+        cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, fontScale, color, thickness=8)
+        return frame
+
+    def _addValuesLineByLine(self, frame, values, labels, position, colors):
+        for v, l, c in zip(values, labels, colors):
+            text = "{:s}: {:7.2f}".format(l, float(v))
+            frame = self._addText(frame, text, position, c)
+            position = (position[0], position[1]+70)
+        return frame
+
+    def _addValues(self, inputValues, frame, pos = (20, 60), prefix = ''):
+        labels = [prefix+l for l in ['X', 'Y', 'Z']]
+        colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0))
+        return self._addValuesLineByLine(frame, inputValues, labels, pos, colors)
 
     def showFrameWithAllInputs(self, frame, pPts = None,
                      landmarks = None, outputValues = None, delay = 1):
         frame = self.addAllInputs(frame, pPts, landmarks, outputValues)
+        h, w, _ = frame.shape
+        cv2.line(frame, (0, int(h/2)), (w, int(h/2)), (0,0,0), 5)
+        cv2.line(frame, (int(w/2), 0), (int(w/2), h), (0,0,0), 5)
         return self.showFrame(frame, delay)
-    
+
     def playSubjectVideoWithAllInputs(self, estimator, streamer):
         for frame in streamer:
             annotations = \
                 estimator.estimateInputValuesWithAnnotations(frame)
             inputValues, pPts, landmarks = annotations
-            pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
-            inputValues[0] = frame.shape[1] - inputValues[0]
+            pose = estimator.getHeadPose()
+            print(pose)
+            #pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
+            #print(inputValues[0], frame.shape[1])
+            #inputValues[0] = frame.shape[1] - inputValues[0]
+            frame = self._addValues(inputValues, frame, prefix='Gaze')
+            frame = self._addValues(pose[:3], frame, pos=(20, 200), prefix='Pos')
+            frame = self._addValues(pose[3:], frame, pos=(20, 420), prefix='Or')
             k = self.showFrameWithAllInputs(frame, pPts, landmarks, inputValues)
             if not k:
                 break

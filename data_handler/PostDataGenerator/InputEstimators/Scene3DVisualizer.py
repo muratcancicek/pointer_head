@@ -228,6 +228,11 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             scene = self.addTrailToSceneFrame(scene0, scene, trailFrame)
         headGaze = estimator.poseCalculator.calculateHeadGazeProjection()
         self.addPointingValueToSceneFrame(scene, headGaze)
+        scene = self._addValues(headGaze, scene, prefix='Gaze')
+        pose = estimator.getHeadPose()
+        scene = self._addValues(pose[:3], scene, pos=(20, 200), prefix='Pos')
+        scene = self._addValues(pose[3:], scene, pos=(20, 420), prefix='Or')
+        print('pp')
         return scene, self.showFrame(scene)
     
     def showMergedLargeFrame(self, frame, all3DPoints, landmarks3d, landmarks):
@@ -285,7 +290,17 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         #frame = self.addBox(largeFrame, noseProj.astype(int))
         ##frame = self.addBox(frame, noseProj.astype(int))
         return self.showFrame(largeFrame)
-
+    
+    #def _addValues(self, frame):
+    #    pos = (40, 60)
+    #    labels = ['inX', 'inY', 'inZ']
+    #    colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0))
+    #    frame = self._addValuesLineByLine(frame, self._inputValues, labels, pos, colors)
+    #    labels = ['outX', 'outY', 'outZ']
+    #    pos = (frame.shape[1] - 480, 60)
+    #    colors = ((0, 0, 255), (0, 255, 0))
+    #    return self._addValuesLineByLine(frame, self._outputValues, labels, pos, colors)
+    
     def playSubjectVideoWithHeadGaze(self, estimator, 
                                      streamer, trailStreamer = None):
         if not trailStreamer is None:

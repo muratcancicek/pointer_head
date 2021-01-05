@@ -98,10 +98,6 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
         scale = 3840/size[0]
         focal_length = [2667.497359647048143, 2667.497359647048143]
         focal_length = [l/scale for l in focal_length]
-        #print(focal_length)
-        #print()
-        #print()
-        #print()
         camera_center = (1991.766193951624246, 1046.480313913574491)
         camera_center = [l/scale for l in camera_center]
         camera_matrix = np.array(
@@ -113,14 +109,12 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
     @staticmethod
     def __get_full_model_points(filename):
         """Get all 68 3D model points from file"""
-        raw_value = []
+        raw_values = []
         with open(filename) as file:
             for line in file:
-                raw_value.append(line)
-        model_points = np.array(raw_value, dtype=np.float32)
+                raw_values.append(line)
+        model_points = np.array(raw_values, dtype=np.float32)
         model_points = np.reshape(model_points, (3, -1)).T
-        # model_points *= 4      
-        #model_points[:, -1] *=        return model_points 
         return model_points
 
     def __get_kalman_filter(self):
@@ -150,8 +144,7 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
                                       [0.001658348839202715592], [-0.0006434617243149612104]
                                       ,[0.3660073010818283845]])
         self._rotation_vector = np.array([[-0.0], [0.0], [-0.0]]) 
-        self._translation_vector = np.array([[0.0], [0.0], [550.0]])# None 
-        #self._pose_stabilizers = self.__get_pose_stabilizers()
+        self._translation_vector = np.array([[0.0], [0.0], [550.0]])
         self._kf = self.__get_kalman_filter()
 
     def solve_pose_by_68_points(self, image_points): 
@@ -160,36 +153,24 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
             cv2.solvePnP(self._faceModelPoints, image_points,
                         self._camera_matrix, self._dist_coeffs,
                          rvec=self._rotation_vector, 
-                         tvec=self._translation_vector, useExtrinsicGuess=True)#)
-        #rv = str([math.degrees(t[0]) for t in rotation_vector]), _Ransac
-        #s = 'forw'
-        #rr = rotation_vector % 2*math.pi
-        #if translation_vector[2] < 0:
-            #translation_vector[:, 0] *= -1
-            #rotation_vector[0, 0] *= -1
-            #rotation_vector[1, 0] *= -1
-            #rotation_vector[-1, 0] = (rotation_vector[-1, 0]-math.pi)
-            #s = 'back' 
-        #tv = str([t[0] for t in translation_vector])
-        #rv2 = str([math.degrees(t[0]) for t in rr])
-        #print('\r%s %s %s' % (s, tv, rv), end = '\r')math.degrees()
-        #print('%s %s %s %s' % (s, tv, rv, rv2))     
+                         tvec=self._translation_vector, useExtrinsicGuess=True)
         self._rotation_vector = rotation_vector
         self._translation_vector = translation_vector
         return (rotation_vector, translation_vector)
 
     def calculatePose(self, shape):
         pose = self.solve_pose_by_68_points(shape)
-        rv =  np.array([t[0] for t in self._rotation_vector])
-        self._pose = np.concatenate((self._translation_vector[:,0], rv), 0)
+        self._pose = np.concatenate((self._translation_vector, 
+                                     self._rotation_vector), 0)
         for i, kf in enumerate(self._kf):
             self._mf[i], self._cf[i] = self._kf[i].filter_update(self._mf[i], 
-                                                                 self._cf[i], self._pose[i])
+                                                                 self._cf[i],
+                                                                 self._pose[i])
         self._pose[:] = self._mf
-        #self._mf, self._cf = self._kf.filter_update(self._mf, self._cf, self._pose)
-        #self._pose = self._mf[0]
-        self._rotation_vector = self._pose[3:].reshape((3, 1))
-        self._translation_vector = self._pose[:3].reshape((3, 1))
+        self._pose[0] *= -1  # X-axis is reverse for the model
+        self._pose[3] *= -1
+        self._rotation_vector = self._pose[3:]
+        self._translation_vector = self._pose[:3]
         return self._pose
 
 class PoseEstimator(HeadPoseEstimatorABC):
@@ -214,7 +195,7 @@ class PoseEstimator(HeadPoseEstimatorABC):
             return self._headPose3D
             
     def _calculateHeadPoseWithAnnotations(self, frame):
-        self._headPose3D = self.calculateHeadPose(frame)#[1][:2]
+        self._headPose3D = self.calculateHeadPose(frame)
         self._pPoints = self._poseCalculator.calculateProjectionPoints(self._landmarks)
         return self._headPose3D, self._pPoints, self._landmarks
 
@@ -247,7 +228,7 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         self._imagePointsVec.pop(0)
         print(ip.shape, self._faceModelPoints.shape, 
               len(self._objectPointsVec), len(self._imagePointsVec))
-        flags=(cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT)
+        flags=(cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT + cv2.SOLVEPNP_ITERATIVE)
         retval, cameraMatrix, distCoeffs, rvecs, tvecs = \
             cv2.calibrateCamera(self._objectPointsVec, self._imagePointsVec, 
                                 (1920, 1080), self._camera_matrix, 
@@ -259,12 +240,17 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         if recalculatePose:
                 self.calculatePose(shape)
         if not (self._rotation_vector is None or self._translation_vector is None):
-            self._front_depth = self._translation_vector[2, 0] 
+            self._front_depth = np.linalg.norm(self._translation_vector) 
             self._rectCorners3D = \
                 self._get_3d_points(rear_size = 0, rear_depth = 55, front_size = 0, 
-                                    front_depth = self._front_depth)
-            point_2d, _ = cv2.projectPoints(self._rectCorners3D, self._rotation_vector, 
-                                            self._translation_vector, self._camera_matrix,
+                                    front_depth = 35*self._front_depth)
+            rv = self._rotation_vector.copy()
+            rv[1] *= -1
+            rv[0] -= 0.2
+            tv = self._translation_vector.copy()
+            tv[0] *= -1
+            point_2d, _ = cv2.projectPoints(self._rectCorners3D, rv, 
+                                            tv, self._camera_matrix,
                                            self._dist_coeffs)
             self._projectionPoints = np.int32(point_2d.reshape(-1, 2))
         return self._projectionPoints
@@ -295,8 +281,10 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
 
     def translateTo3D(self, points):
         rot = self._rotation_vector.copy()
+        rot[0] *= -1
         rotation_mat, _ = cv2.Rodrigues(rot)
         t_vec = self._translation_vector.copy()
+        t_vec[0] *= -1
         project_mat = cv2.hconcat((rotation_mat, t_vec))
         project_mat = np.concatenate((project_mat, np.zeros((1, 4))), 0)
         project_mat[-1, -1] = 1
@@ -366,7 +354,6 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
     def calculate3DNoseProjection(self):
         nose = self.get3DNose()
         return self.calculate3DProjection(nose)
-        return self._projectionPoints
 
     def calculateAll3DProjections(self):
         screenProj = self.calculate3DScreenProjection()
@@ -400,9 +387,8 @@ class HeadGazer(PoseEstimator):
         self._landmarks = self._landmarkDetector.detectFacialLandmarks(frame)
         if len(self._landmarks) != 0:
             self._halfFrameHeight = frame.shape[0]/2
-            g = self._poseCalculator\
+            self._headPose3D, self._pPoints = self._poseCalculator\
                 .calculateHeadGazeWithProjectionPoints(self._landmarks) 
-            self._headPose3D, self._pPoints = g
             return self._headPose3D
             
     def _calculateHeadPoseWithAnnotations(self, frame):
