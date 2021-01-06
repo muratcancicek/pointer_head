@@ -55,57 +55,62 @@ class InputEstimationVisualizer(object):
         else:
             return True
     
-    def _addText(self, frame, text, pos, color, fontScale = 2):
-        cv2.putText(frame, text, pos, cv2.FONT_HERSHEY_SIMPLEX, fontScale, color, thickness=8)
+    def __addText(self, frame, text, pos, color, largeScale = True):
+        if largeScale:
+            cv2.putText(frame, text, pos, 
+                        cv2.FONT_HERSHEY_SIMPLEX, 2, color, thickness=8)
+        else:
+            cv2.putText(frame, text, pos, 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, thickness=1)
         return frame
-
-    def _addValuesLineByLine(self, frame, values, labels, position, colors):
+    
+    def _addValuesLineByLine(self, frame, values, labels,
+                            position, colors, largeScale = True):
         for v, l, c in zip(values, labels, colors):
             text = "{:s}: {:7.2f}".format(l, float(v))
-            frame = self._addText(frame, text, position, c)
-            position = (position[0], position[1]+70)
+            frame = self.__addText(frame, text, position, c, largeScale)
+            position = (position[0], position[1]+(70 if largeScale else 30))
         return frame
 
-    def _addValues(self, inputValues, frame, pos = (20, 60), prefix = ''):
+    def _addValues(self, inputValues, frame, 
+                   pos = (20, 60), prefix = '', largeScale = True):
         labels = [prefix+l for l in ['X', 'Y', 'Z']]
-        colors = ((0, 0, 255), (0, 255, 0), (255, 0, 0))
-        return self._addValuesLineByLine(frame, inputValues, labels, pos, colors)
+        g = 0 if largeScale else 200
+        colors = ((0, 0, 255), (0, 255, 0), (255, g, 0))
+        return self._addValuesLineByLine(frame, inputValues, labels,
+                                         pos, colors, largeScale)
 
-    def showFrameWithAllInputs(self, frame, pPts = None,
-                     landmarks = None, outputValues = None, delay = 1):
+    def _addMeasurements(self, inputValues, pose, frame, largeScale = True):
+        initialPos, gap = ((20, 60), 200) if largeScale else ((120, 30), 90)
+        frame = self._addValues(pose[:3], frame, pos = initialPos, 
+                                prefix = 'Pos', largeScale = largeScale)
+        initialPos = (initialPos[0], initialPos[1] + gap)
+        frame = self._addValues(pose[3:], frame, pos =initialPos, 
+                                prefix = 'Or', largeScale = largeScale)
+        initialPos = (initialPos[0], initialPos[1] + gap)
+        frame = self._addValues(inputValues, frame, pos = initialPos,
+                                prefix = 'Gaze', largeScale = largeScale)
+        return frame
+
+    def showFrameWithAllInputs(self, frame, pPts = None, landmarks = None, 
+                     outputValues = None, pose = None, delay = 1):
         frame = self.addAllInputs(frame, pPts, landmarks, outputValues)
         h, w, _ = frame.shape
         cv2.line(frame, (0, int(h/2)), (w, int(h/2)), (0,0,0), 5)
         cv2.line(frame, (int(w/2), 0), (int(w/2), h), (0,0,0), 5)
+        if not pose is None:
+            frame = self._addMeasurements(outputValues, pose, frame)
         return self.showFrame(frame, delay)
 
     def playSubjectVideoWithAllInputs(self, estimator, streamer):
+        self._estimator = estimator
         for frame in streamer:
             annotations = \
                 estimator.estimateInputValuesWithAnnotations(frame)
-            inputValues, pPts, landmarks = annotations
             pose = estimator.getHeadPose()
-            print(pose)
-            #pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
-            #print(inputValues[0], frame.shape[1])
-            #inputValues[0] = frame.shape[1] - inputValues[0]
-            frame = self._addValues(inputValues, frame, prefix='Gaze')
-            frame = self._addValues(pose[:3], frame, pos=(20, 200), prefix='Pos')
-            frame = self._addValues(pose[3:], frame, pos=(20, 420), prefix='Or')
-            k = self.showFrameWithAllInputs(frame, pPts, landmarks, inputValues)
-            if not k:
-                break
-        return
-    
-    def playSubjectVideoWithHeadGaze(self, mappingFunc, streamer):
-        for frame in streamer:
-            annotations = \
-                mappingFunc.calculateOutputValuesWithAnnotations(frame)
-            outputValues, inputValues, pPts, landmarks = annotations
-            pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
-            headGaze[0] = frame.shape[1] - headGaze[0]
+            inputValues, pPts, landmarks = annotations
             k = self.showFrameWithAllInputs(frame, pPts, 
-                                            landmarks, inputValues)
+                                            landmarks, inputValues, pose)
             if not k:
                 break
         return
@@ -113,9 +118,8 @@ class InputEstimationVisualizer(object):
     def replaySubjectVideoWithPostData(self, postData, streamer):
         jointStreamer = zip(*(postData + (streamer,)))
         for headGaze, pose, landmarks, pPts, frame in jointStreamer:
-            pPts[5:, :] = pPts[5:, :] + 2 * (pPts[:5, :] - pPts[5:, :])
-            headGaze[0] = frame.shape[1] - headGaze[0]
-            k = self.showFrameWithAllInputs(frame, pPts, landmarks, headGaze)
+            k = self.showFrameWithAllInputs(frame, pPts, 
+                                            landmarks, headGaze, pose)
             if not k:
                 break
         return

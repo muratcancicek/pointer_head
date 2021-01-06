@@ -220,14 +220,14 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
 
     def calibrateCamera(self, imagePoints):
         ip = imagePoints.astype('float32')        
-        print(imagePoints)
+        #print(imagePoints)
         self._imagePointsVec.append(ip)
         n = 7
         if len(self._imagePointsVec) < n+1:
             return
         self._imagePointsVec.pop(0)
-        print(ip.shape, self._faceModelPoints.shape, 
-              len(self._objectPointsVec), len(self._imagePointsVec))
+        #print(ip.shape, self._faceModelPoints.shape, 
+        #      len(self._objectPointsVec), len(self._imagePointsVec))
         flags=(cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT + cv2.SOLVEPNP_ITERATIVE)
         retval, cameraMatrix, distCoeffs, rvecs, tvecs = \
             cv2.calibrateCamera(self._objectPointsVec, self._imagePointsVec, 

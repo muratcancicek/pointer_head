@@ -24,8 +24,7 @@ class PostDataGenerator(object):
 
     def __init__(self):
         super()
-        self.__estimator = HeadGazer() # PoseEstimator() # 
-        #LandmarkDetector() # CVFaceDetector()
+        self.__estimator = HeadGazer()
         self.__visualizer = Scene3DVisualizer() # InputEstimationVisualizer() # 
 
     def openVideo(self, path):
@@ -68,6 +67,7 @@ class PostDataGenerator(object):
         
     def playSubjectVideoWithAllInputs(self, subjectVideoPath):
         streamer = self.openVideo(subjectVideoPath)
+        self.__visualizer = InputEstimationVisualizer() 
         self.__visualizer.playSubjectVideoWithAllInputs(self.__estimator, 
                                                         streamer)
         return
@@ -113,7 +113,7 @@ class PostDataGenerator(object):
                 self.__estimator.estimateInputValuesWithAnnotations(subjFrame)
             gaze, pPoints, landmarks = annotations
             pose = self.__estimator.getHeadPose()
-            postLine = np.concatenate((gaze, pose, 
+            postLine = np.concatenate((gaze, pose.reshape((pose.size,)), 
                                        landmarks.reshape((landmarks.size,)),
                                        pPoints.reshape((pPoints.size,))), 0)
             print('\rGenerating PostData%s (%.2f)...' % (tName, 
