@@ -95,7 +95,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         return ax
 
     def plot3DPoints(self, points = None, dpi=125.88, img = None, plot = False):
-        points[:, 0] *= -1
+        #points[:, 0] *= -1
         #points[:, ] *= -1
         if points is None:
             points = \
@@ -114,6 +114,7 @@ class Scene3DVisualizer(InputEstimationVisualizer):
         ax.plot(points[:10, 0], points[:10, 1], 
                 points[:10, 2], c = self._screenColorStr)
         ax.plot(points[-10:, 0], points[-10:, 1], points[-10:, 2])
+        ax.invert_xaxis()
         if plot:
             pyplot.show()
         else:
@@ -227,8 +228,9 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             trailFrame = next(trailStreamer)
             scene = self.addTrailToSceneFrame(scene0, scene, trailFrame)
         headGaze = estimator.poseCalculator.calculateHeadGazeProjection()
-        self.addPointingValueToSceneFrame(scene, headGaze)
+        scene = self.addPointingValueToSceneFrame(scene, headGaze)
         pose = estimator.getHeadPose()
+        headGaze = estimator.get3DNoseTip()
         scene = self._addMeasurements(headGaze, pose, scene, largeScale = False)
         return scene, self.showFrame(scene)
     
@@ -289,7 +291,6 @@ class Scene3DVisualizer(InputEstimationVisualizer):
     
     def playSubjectVideoWithHeadGaze(self, estimator, 
                                      streamer, trailStreamer = None):
-        print('D2one')
         if not trailStreamer is None:
             trailStreamer = (cv2.flip(tf, 1) for tf in trailStreamer)
         for frame in streamer:

@@ -81,7 +81,7 @@ class InputEstimationVisualizer(object):
                                          pos, colors, largeScale)
 
     def _addMeasurements(self, inputValues, pose, frame, largeScale = True):
-        initialPos, gap = ((20, 60), 200) if largeScale else ((120, 30), 90)
+        initialPos, gap = ((20, 60), 200) if largeScale else ((20, 30), 90)
         frame = self._addValues(pose[:3], frame, pos = initialPos, 
                                 prefix = 'Pos', largeScale = largeScale)
         initialPos = (initialPos[0], initialPos[1] + gap)

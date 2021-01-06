@@ -167,8 +167,6 @@ class YinsKalmanFilteredHeadPoseCalculator(PoseCalculatorABC):
                                                                  self._cf[i],
                                                                  self._pose[i])
         self._pose[:] = self._mf
-        self._pose[0] *= -1  # X-axis is reverse for the model
-        self._pose[3] *= -1
         self._rotation_vector = self._pose[3:]
         self._translation_vector = self._pose[:3]
         return self._pose
@@ -226,8 +224,6 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         if len(self._imagePointsVec) < n+1:
             return
         self._imagePointsVec.pop(0)
-        #print(ip.shape, self._faceModelPoints.shape, 
-        #      len(self._objectPointsVec), len(self._imagePointsVec))
         flags=(cv2.CALIB_USE_INTRINSIC_GUESS + cv2.CALIB_FIX_PRINCIPAL_POINT + cv2.SOLVEPNP_ITERATIVE)
         retval, cameraMatrix, distCoeffs, rvecs, tvecs = \
             cv2.calibrateCamera(self._objectPointsVec, self._imagePointsVec, 
@@ -245,12 +241,11 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
                 self._get_3d_points(rear_size = 0, rear_depth = 55, front_size = 0, 
                                     front_depth = 35*self._front_depth)
             rv = self._rotation_vector.copy()
-            rv[1] *= -1
+            rv *= -1
             rv[0] -= 0.2
-            tv = self._translation_vector.copy()
-            tv[0] *= -1
             point_2d, _ = cv2.projectPoints(self._rectCorners3D, rv, 
-                                            tv, self._camera_matrix,
+                                            self._translation_vector, 
+                                            self._camera_matrix,
                                            self._dist_coeffs)
             self._projectionPoints = np.int32(point_2d.reshape(-1, 2))
         return self._projectionPoints
@@ -280,12 +275,8 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
         return output, self._projectionPoints
 
     def translateTo3D(self, points):
-        rot = self._rotation_vector.copy()
-        rot[0] *= -1
-        rotation_mat, _ = cv2.Rodrigues(rot)
-        t_vec = self._translation_vector.copy()
-        t_vec[0] *= -1
-        project_mat = cv2.hconcat((rotation_mat, t_vec))
+        rotation_mat, _ = cv2.Rodrigues(self._rotation_vector)
+        project_mat = cv2.hconcat((rotation_mat, self._translation_vector))
         project_mat = np.concatenate((project_mat, np.zeros((1, 4))), 0)
         project_mat[-1, -1] = 1
         points_ = np.concatenate((points, np.ones((points.shape[0], 1))), 1)
@@ -419,6 +410,8 @@ class HeadGazer(PoseEstimator):
     def getHeadPose(self):
         return  self._poseCalculator.pose
 
+    def get3DNoseTip(self):
+        return self._poseCalculator.get3DNose()[-1]
     def getGazingFrameDimensions(self):
         #return int(1920), int(self._halfFrameHeight + 1080)
         #print(self._gazingFrameSize)
