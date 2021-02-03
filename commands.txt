@@ -1,4 +1,4 @@
-C:\cStorage\Program_Files\python_envs\tf36\Scripts\activate
+C:\cstorage\program_files\python_envs\tf36\scripts\activate
 
 C:\cStorage\Program_Files\python_envs\torch\Scripts\activate
 cd C:\Users\MSI2\Documents\Offline_Projects\pointer_head\
