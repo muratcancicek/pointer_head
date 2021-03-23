@@ -355,7 +355,7 @@ class MuratcansHeadGazeCalculator(YinsKalmanFilteredHeadPoseCalculator):
 class HeadGazer(PoseEstimator):
     def __init__(self, faceDetector = None, landmarkDetector = None, 
                  poseCalculator = None, face_landmark_path = None, 
-                 inputFramesize = (1920, 1080), *args, **kwargs):
+                 inputFramesize = (1280, 720), *args, **kwargs):
         if poseCalculator == None:
             poseCalculator = \
                 MuratcansHeadGazeCalculator(inputFramesize = inputFramesize)

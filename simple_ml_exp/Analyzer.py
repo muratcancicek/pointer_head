@@ -77,16 +77,25 @@ class Analyzer(object):
         ax2.plot(gaze[:, 1])
         plt.show()
         
-    def plotAx(self, ax1, data, ind, yLabel, yLim = None): 
+    def plotAx(self, ax1, data, ind, yLabel, yLim = None, twinx = False): 
         colors = ['g', 'r', 'y', 'b', 'c', 'm', 'y'] * 6
         types = ['-', '-', '--', '-', '-.', ':', '-.', ':'] * 6
-        ax1.set_ylabel(yLabel)
+        ylabels = ['Target', 'Input Landmark']
         if yLim:
             ax1.set_ylim(*yLim)
         #ax1.set_xlim(200, 300)
         lines = []
+        if twinx:
+            ax2 = ax1.twinx()
+            axes = (ax1, ax2)
         for i, (d, _) in enumerate(data):
-            l, = ax1.plot(d[:, ind], ls=types[i], c=colors[i])
+            if twinx:
+                a = axes[i]
+                a.set_ylabel(ylabels[i] + ' ' + yLabel)
+            else:
+                ax1.set_ylabel(yLabel)
+                a = ax1 
+            l, = a.plot(d[:, ind], ls=types[i], c=colors[i])
             lines.append(l)
         mse = lambda d: self.root_mean_squared_error(data[0][0][ind], d) 
         #data = [data[0]] + [(d, l+' (RMSE: %.3f)' % mse(d)) for d,l in data[1:]]
@@ -94,7 +103,7 @@ class Analyzer(object):
 
 
     def plotHeadGazeAndPointingFo(self, *data, title = 'Plot', 
-                                  plot = True, yLim = True): 
+                                  plot = True, yLim = True, twinx = False): 
         fig = plt.figure(dpi = 120, figsize = (21, 9)) # (42, 18)) # 
         if data[0][0].shape[-1] == 1:
             ax1 = fig.add_subplot(111)
@@ -102,13 +111,13 @@ class Analyzer(object):
             ax1 = fig.add_subplot(211)
         ax1.set_title(title)
       #  self.plotAx(ax1, data, 0, 'X', (0,1920) if yLim else None)
-        self.plotAx(ax1, data, 0, 'X')#, (-960, 1920+960) if yLim else None)
+        self.plotAx(ax1, data, 0, 'X', twinx = twinx)#, (-960, 1920+960) if yLim else None)
         if data[0][0].shape[-1] == 1:
             return fig
 
         ax2 = fig.add_subplot(212)
        # self.plotAx(ax2, data, 1, 'Y', (0,1080) if yLim else None)
-        self.plotAx(ax2, data, 1, 'Y')#, (-540, 1080+540) if yLim else None)
+        self.plotAx(ax2, data, 1, 'Y', twinx = twinx)#, (-540, 1080+540) if yLim else None)
         if plot:
             plt.show()
         return fig
@@ -130,7 +139,16 @@ class Analyzer(object):
         newData[:, 1] = KalmanFilter().em(data[:, 1]).smooth(data[:, 1])[0][:, 0]
         return newData
 
-    def saveHeadGazeFilterPlotssAsPDF(self, pairs, tName, path, plot = False):
+    def saveInputLandmarksPlotsAsPDF(self, pairs, tName, path, plot = False):
+        f = self.plotHeadGazeAndPointingFo(*pairs, yLim = True, plot = plot, twinx=True,
+                                           title = 'InputLandmarks for '+tName)
+        img = self.get_img_from_fig(f)
+        mergedImg = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        pdf = Image.fromarray(mergedImg)
+        pdf.save(path)
+    
+
+    def saveHeadGazeFilterPlotsAsPDF(self, pairs, tName, path, plot = False):
         f = self.plotHeadGazeAndPointingFo(*pairs, yLim = True, plot = plot,
                                            title = 'HeadGazeFilters for '+tName)
         img = self.get_img_from_fig(f)
@@ -149,12 +167,27 @@ class Analyzer(object):
         #pairs = [(d[:100], f) for d, f in pairs]
         return pairs
     
+    def plotInputLandmarksFor(self, handler, subjId, tName, path):
+        target, inputLandmark = handler.getInputLandmarkToPointingDataFor(subjId, tName)
+        pair = ((target, 'Target'), (inputLandmark, 'Inputlandmark'))
+        #f = self.plotHeadGazeAndPointingFo(*pair, yLim = True, plot = True, twinx = True,
+        #                                   title = 'InputLandmarks for '+tName)
+        self.saveInputLandmarksPlotsAsPDF(pair, tName, path, plot = False)
+                
+    
     def plotHeadGazeFiltersFor(self, handlers, subjId, tName, path):
         pairs = self.getPairsOfHeadGazeFiltersFor(handlers, subjId, tName)
         #f = self.plotHeadGazeAndPointingFo(*pairs, yLim = True, plot = True,
         #                                   title = 'HeadGazeFilters for '+tName)
-        self.saveHeadGazeFilterPlotssAsPDF(pairs, tName, path, plot = False)
+        self.saveHeadGazeFilterPlotsAsPDF(pairs, tName, path, plot = False)
                 
+    def plotInputLandmarksForForSubj(self, handler, subjId, Paths):
+        trails = handler.readAllTrails()
+        for tName in trails:
+            name = '%s_%s_InputLandmarks.pdf' % (tName, subjId)
+            path = Paths.LandmarksGraphsFolder + subjId + Paths.sep + name
+            self.plotInputLandmarksFor(handler, subjId, tName, path)
+            
     def plotHeadGazeFiltersForSubj(self, handlers, subjId, Paths):
         trails = handlers[0][1].readAllTrails()
         for tName in trails:
@@ -223,7 +256,7 @@ class Analyzer(object):
     def getHeadGazeFilterCorrelFor(self, target, gaze, tName): 
         xCorr, yCorr = self.get2DCorrelation(target, gaze)
         titles = ','.join(['trails', 'X_Corr', 'Y_Corr', 'Mean_Corr'])
-        values = ['%.2f' % v for v in (xCorr, yCorr, (xCorr + yCorr)/2)]
+        values = ['%.2f' % v for v in (xCorr, yCorr, (abs(xCorr) + abs(yCorr))/2)]
         values = ','.join([tName] + values)
         return titles, values
 
@@ -311,3 +344,48 @@ class Analyzer(object):
         #mergedImg = cv2.cvtColor(mergedImg, cv2.COLOR_BGR2RGB)
         #pdf = Image.fromarray(mergedImg)
         #pdf.save(path)
+        
+    def countFrameInVideo(self, path):
+        cap = cv2.VideoCapture(path)
+        frameCount = 0
+        while(True):
+            ret, frame = cap.read()
+            #subjFrame = cv2.flip(subjFrame, 1)
+            if not ret:
+                if frameCount < 1:
+                    print('Something Wrong')
+                break
+            frameCount += 1
+        cap.release()    
+        return frameCount
+
+    def checkTrailFrameCount(self, handler, subjId, tName): 
+        if isinstance(subjId, int): subjId = str(subjId)
+        handler.readSubjectTrail(subjId, tName)
+        videoPath = handler.subjects[subjId]['ts'][tName]['VideoPath']
+        trailFrameCount = handler.trails[tName]['meta']['frameCount']
+        frameCount = self.countFrameInVideo(videoPath)
+        if trailFrameCount == frameCount:
+            print('%-22s seems ok with %05d frames' % 
+                    (tName, trailFrameCount))
+        else: 
+            print('%-22s seems corrupted, actual fc: %05d | fc: %05d | %d' % 
+                    (tName, trailFrameCount, frameCount, trailFrameCount - frameCount))
+
+    def checkFrameCount(self, handler, subjId): 
+        if isinstance(subjId, int): subjId = str(subjId)
+        handler.readAllSubjectTrails(subjId)
+        print()
+        for tName in handler.trails:
+           self.checkTrailFrameCount(handler, subjId, tName)
+    
+    def _testCheckingFrameCount(self, handler): 
+        for subjId in range(5, 6):
+            print('For Participant %d:' % subjId)
+            self.checkFrameCount(handler, subjId)
+            print()
+
+    def testCheckingFrameCount(self, handler): 
+        self._testCheckingFrameCount(handler)
+        #self.checkFrameCount(handler, 1)
+        #self.checkTrailFrameCount(handler, 1, 'vertical_part2_slow')

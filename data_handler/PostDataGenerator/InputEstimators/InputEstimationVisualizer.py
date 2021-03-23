@@ -102,6 +102,15 @@ class InputEstimationVisualizer(object):
             frame = self._addMeasurements(outputValues, pose, frame)
         return self.showFrame(frame, delay)
 
+    def playSubjectVideoWithLandmarks(self, estimator, streamer):
+        self._estimator = estimator
+        for frame in streamer:
+            landmarks = estimator.detectFacialLandmarks(frame)
+            k = self.showFrameWithAllInputs(frame, landmarks = landmarks)
+            if not k:
+                break
+        return
+    
     def playSubjectVideoWithAllInputs(self, estimator, streamer):
         self._estimator = estimator
         for frame in streamer:

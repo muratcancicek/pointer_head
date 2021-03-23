@@ -7,17 +7,18 @@ elif os.name == 'posix':
     DATASETS_Folder = '/home/cicekm/sets' + sep
 WhiteBallExpFolder = DATASETS_Folder + 'WhiteBallExp' + sep
 MergedVideosFolder = WhiteBallExpFolder + 'MergedVideos' + sep
-TrailsFolder = WhiteBallExpFolder + 'trails' + sep
+TrailsFolder = WhiteBallExpFolder + 'trails' + sep + '25fps' + sep
 TrailsDataFolder = TrailsFolder + 'data' + sep
 TrailVideosFolder = TrailsFolder + 'videos' + sep
 TrailSnapshotsFolder = TrailsFolder + 'snapshots' + sep
 SubjectsFolder = WhiteBallExpFolder + 'Subjects' + sep
 PostDataFolders = WhiteBallExpFolder + 'PostDataFolders' + sep
-PostDataFolder = PostDataFolders + 'PostData_pnp_kf' + sep
+PostDataFolder = PostDataFolders + 'PostLandmarks' + sep
 AnalysisFolder = WhiteBallExpFolder + 'Analysis' + sep
 TrainingResultsFolder = AnalysisFolder + 'TrainingResults' + sep
 AnalysisCommonFolder = TrainingResultsFolder + 'Common' + sep
 AnalysisTempFolder = AnalysisCommonFolder + 'Tmp' + sep
+LandmarksGraphsFolder = AnalysisFolder + 'LandmarksGraphs' + sep
 HeadGazeGraphsFolder = AnalysisFolder + 'HeadGazeGraphs' + sep
 HeadGazeGraphsCommonFolder = HeadGazeGraphsFolder + 'Common' + sep
 

@@ -35,7 +35,23 @@ def testCorrelation(DataHandler, subjId = 1, tName = 'infinity'):
     pairs = handler.getAllHeadGazeToPointingPairs(subjId)
     corr = analyzer.getHeadGazeFilterCorrelForSubj(pairs)
     print('\n'.join(corr))
+        
+def testLandmarkCorrelation(DataHandler, subjId = 1, tName = 'infinity'):
+    if isinstance(subjId, int): subjId = str(subjId)
+    handler = DataHandler() 
+    analyzer = Analyzer()
+    target, headGaze = handler.getInputLandmarkToPointingDataFor(subjId, tName)
+    corr = analyzer.getHeadGazeFilterCorrelFor(target, headGaze, tName)
+    print('\n'.join(corr))
     
+def testPlottingLandmarks(DataHandler, subjId = 1, tName = 'infinity'):
+    if isinstance(subjId, int): subjId = str(subjId)
+    handler = DataHandler()
+    Paths = DataHandler.Paths
+    analyzer = Analyzer()
+   #analyzer.plotInputLandmarksFor(handler, subjId, tName, path)
+    analyzer.plotInputLandmarksForForSubj(handler, subjId, Paths)
+
 def testPlottingFilters(DataHandler, subjId = 1, tName = 'infinity'):
     if isinstance(subjId, int): subjId = str(subjId)
     handlers = get4Handlers(DataHandler, subjId)
@@ -74,10 +90,10 @@ def testNoise(DataHandler, subjId = 1, tName = 'infinity'):
     #analyzer.printRMSE(headGaze[:, 1], headGaze2[:, 1])
     #analyzer.plotPrediction(headGaze, headGaze2, target)
 
-def testPlottingAllSubjects(DataHandler, subjId = 1, tName = 'infinity'):
+def testPlottingAllSubjects(DataHandler, subjId = 1):
     if isinstance(subjId, int): subjId = str(subjId)
      #, '2', '3'] # range(1, 6)
-    sList = ['2'] #  os.listdir(DataHandler.Paths.PostDataFolder)
+    sList = ['1'] #  os.listdir(DataHandler.Paths.PostDataFolder)
     handler = DataHandler()
     analyzer = Analyzer()
     #analyzer.plotAllSubjectsFor(handler, sList, tName) 
@@ -99,14 +115,17 @@ def testKeras(DataHandler, subjId = 1, tName = 'infinity'):
     expSettings = (sList, TrainingDataHandler.LANDMARK_DATA, DLExpRunner.TORCH_LSTM)
     expSettings = (sList, TrainingDataHandler.LANDMARK_DATA, DLExpRunner.KERAS_LSTM)
     runner.runExpOnSubjectList(*expSettings)
-    
+
 def main(DataHandler):
    #testSimpleML0(DataHandler)
    #testKeras(DataHandler, 2)
-   testCorrelation(DataHandler, 3)
-   #testPlottingFilters(DataHandler, 3, 'random5')
+   #testCorrelation(DataHandler, 3)
+   #testLandmarkCorrelation(DataHandler, 5)
+   for i in range(8, 9): testPlottingLandmarks(DataHandler, subjId = i)
+   #testPlottingFilters(DataHandler, 2, 'random5')
    #testNoise(DataHandler, 3), 
    #testPlottingAllSubjects(DataHandler, 3, 'zigzag')
+    #Analyzer().testCheckingFrameCount(DataHandler())
 
 if __name__ == '__main__':
     raise NotImplementedError

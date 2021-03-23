@@ -1,7 +1,10 @@
 C:\cstorage\program_files\python_envs\tf36\scripts\activate
+cd C:\Users\MSI2\Documents\Offline_Projects\pointer_head\
+
+cd RecordSplitter
 
 C:\cStorage\Program_Files\python_envs\torch\Scripts\activate
-cd C:\Users\MSI2\Documents\Offline_Projects\pointer_head\
+
 python run_pointer_head_pretests.py
 
 ssh muratcan@cvlabgpu.soe.ucsc.edu

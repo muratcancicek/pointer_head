@@ -136,6 +136,10 @@ class DataHandler(object):
         gen = PostDataGenerator()
         return gen, self.subjects[id]['ts'][tName]['VideoPath']
 
+    def playSubjectTrailWithLandmarks(self, id, tName):
+        gen, path = self.__playSubjectTrailWith(id, tName)
+        gen.playSubjectVideoWithLandmarks(path)
+        
     def playSubjectTrailWithAllInputs(self, id, tName):
         gen, path = self.__playSubjectTrailWith(id, tName)
         gen.playSubjectVideoWithAllInputs(path)
@@ -169,6 +173,24 @@ class DataHandler(object):
         postData = self.loadPostDataOfSubjectVideo(id, tName)
         gen.replay3DSubjectTrailWithPostData(postData, path, id)
             
+    def generatePostLandmarksFromSubjectVideo(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.readSubjectTrail(id, tName)
+        postDataGenerator = PostDataGenerator()
+        path = self.subjects[id]['ts'][tName]['VideoPath']
+        c =  self.subjects[id]['ts'][tName]['t']['meta']['frameCount']
+        return postDataGenerator.getPostLandmarksFromSubjectVideo(path, c, tName)
+
+    def savePostLandmarksFromSubjectVideo(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        postData = self.generatePostLandmarksFromSubjectVideo(id, tName)
+        f = self.subjects[id]['ts'][tName]['t']['meta']['name']+'_PostData.csv'
+        path = self.postDataFolder + id + Paths.sep + f 
+        if not os.path.isdir(self.postDataFolder + id):
+            os.makedirs(self.postDataFolder + id)
+        np.savetxt(path, postData, delimiter=',')
+        print('\r%s has been saved successfully.' % f, end = '\r')  
+
     def generatePostDataFromSubjectVideo(self, id, tName):
         if isinstance(id, int): id = str(id)
         self.readSubjectTrail(id, tName)
@@ -184,6 +206,13 @@ class DataHandler(object):
         path = self.postDataFolder + id + Paths.sep + f 
         np.savetxt(path, postData, delimiter=',')
         print('\r%s has been saved successfully.' % f, end = '\r')  
+        
+    def saveAllPostLandmarksForSubject(self, id):
+        if isinstance(id, int): id = str(id)
+        self.readAllSubjectTrails(id)
+        for subjectVideoName in self.subjects[id]['VideoList']:
+            tName = self.__getSubjectVideoTrailName(id, subjectVideoName)
+            self.savePostLandmarksFromSubjectVideo(id, tName) 
 
     def saveAllPostDataForSubject(self, id):
         if isinstance(id, int): id = str(id)
@@ -243,7 +272,7 @@ class DataHandler(object):
             if not p is None:
                 postDataSet[tName] = p
         return postDataSet
-    
+
     def loadDatasetPairFor(self, subjId, tName):
         if isinstance(subjId, int): subjId = str(subjId)
         postData = self.loadPostDataOfSubjectVideo(subjId, tName)
@@ -275,7 +304,16 @@ class DataHandler(object):
     def getAllDatasetPairsFor(self, subjId):
         if isinstance(subjId, int): subjId = str(subjId)
         return self.loadAllDatasetPairsFor(subjId)    
-    
+           
+    def getInputLandmarkToPointingDataFor(self, subjId, tName, inputLandmarkIndex = 30):
+        if isinstance(subjId, int): subjId = str(subjId)
+        pair = self.getDatasetPairFor(subjId, tName)
+        if pair:
+            data, postData = pair
+            PDG = PostDataGenerator
+            data[:, 0] = 1920 - data[:, 0]
+            return data, postData.reshape((-1, 68, 2))[:, inputLandmarkIndex]
+            
     def getHeadGazeToPointingDataFor(self, subjId, tName):
         if isinstance(subjId, int): subjId = str(subjId)
         pair = self.getDatasetPairFor(subjId, tName)
@@ -283,7 +321,7 @@ class DataHandler(object):
             data, postData = pair
             PDG = PostDataGenerator
             return data, postData[:, PDG.gaze_b_ind:PDG.gaze_e_ind]
-            
+     
     def getAllHeadGazeToPointingPairs(self, subjId): 
         if isinstance(subjId, int): subjId = str(subjId)
         pairsSet = self.getAllDatasetPairsFor(subjId)

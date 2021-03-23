@@ -65,6 +65,14 @@ class PostDataGenerator(object):
         print('\r%s and %s have been merged.' % \
             (subjectVideoPath.split(Paths.sep)[-1], trailName), end = '\r')
         
+    def playSubjectVideoWithLandmarks(self, subjectVideoPath):
+        streamer = self.openVideo(subjectVideoPath)
+        self.__visualizer = InputEstimationVisualizer() 
+        self.__estimator = LandmarkDetector()
+        self.__visualizer.playSubjectVideoWithLandmarks(self.__estimator, 
+                                                        streamer)
+        return
+        
     def playSubjectVideoWithAllInputs(self, subjectVideoPath):
         streamer = self.openVideo(subjectVideoPath)
         self.__visualizer = InputEstimationVisualizer() 
@@ -102,7 +110,42 @@ class PostDataGenerator(object):
         streamer = self.openVideo(subjectVideoPath)
         self.__visualizer.recordSubjectSceneVideoWithHeadGaze(self.__estimator, id,
                                                  trail, streamer, trailStreamer)
-
+        
+    def getPostDataFromSubjectVideo(self, subjectVideoPath, 
+                                    frameCount, tName = ''):
+        if tName != '': tName = ' for ' + tName
+        postData = np.zeros((frameCount, 164))
+        i = 0
+        for subjFrame in self.openVideo(subjectVideoPath):
+            annotations = \
+                self.__estimator.estimateInputValuesWithAnnotations(subjFrame)
+            gaze, pPoints, landmarks = annotations
+            pose = self.__estimator.getHeadPose()
+            postLine = np.concatenate((gaze, pose.reshape((pose.size,)), 
+                                       landmarks.reshape((landmarks.size,)),
+                                       pPoints.reshape((pPoints.size,))), 0)
+            print('\rGenerating PostData%s (%.2f)...' % (tName, 
+                                                         i/frameCount*100), 
+                  end = '\r')   
+            postData[i] = postLine
+            i += 1
+        return postData
+    
+    def getPostLandmarksFromSubjectVideo(self, subjectVideoPath, 
+                                    frameCount, tName = ''):
+        if tName != '': tName = ' for ' + tName
+        self.__estimator = LandmarkDetector()
+        postData = np.zeros((frameCount, 136))
+        i = 0
+        for subjFrame in self.openVideo(subjectVideoPath):
+            landmarks = self.__estimator.detectFacialLandmarks(subjFrame)
+            print('\rGenerating PostData%s (%.2f)...' % (tName, 
+                                                         i/frameCount*100), 
+                  end = '\r')   
+            postData[i] = landmarks.reshape((landmarks.size,))
+            i += 1
+        return postData
+    
     def getPostDataFromSubjectVideo(self, subjectVideoPath, 
                                     frameCount, tName = ''):
         if tName != '': tName = ' for ' + tName
