@@ -42,8 +42,9 @@ def findTrueCorrelation(audio, fltr, corrWaveLen = 50):
         return 0
     elif len(audio) > len(fltr):
         windows = rolling_window(audio, len(fltr))
+        increment = 1 if len(windows) < 10 else int(len(windows)/10)
         windows = [windows[i] for i in 
-                   range(0, len(windows), int(len(windows)/10))]
+                   range(0, len(windows), increment)]
         corrs = [np.corrcoef(row, fltr)[0, 1] for row in windows]
     else:
         for i in range(corrWaveLen):
@@ -52,7 +53,7 @@ def findTrueCorrelation(audio, fltr, corrWaveLen = 50):
     return max(corrs)
 
 def getBeepIntervals(meetingAudio, beepAudio, sampleRate, volThreshold=2000, 
-                     beepConfidence=0.3, corrWaveLen=50, minNoiseLength=None):
+                     beepConfidence=0.2, corrWaveLen=50, minNoiseLength=None):
     if not minNoiseLength: minNoiseLength = sampleRate/25
     noiseIntervals = getNoiseIntervals(meetingAudio, 
                                        minNoiseLength, volThreshold)
@@ -106,11 +107,10 @@ def getTrailIntervals(beeps, trails, sampleRate):
         beginIndex, endIndex = beeps[i][-1], beeps[i+1][-2]
         duration = (endIndex - beginIndex)/sampleRate
         frameCount = duration*trails['fps'][0]
-        rang = 0.7
+        rang = 1
         for j in range(len(trails['duration'])):
             if duration > trails['duration'][j] - rang and \
-                duration < trails['duration'][j] + rang and \
-                duration > trails['duration'][j]:
+                duration < trails['duration'][j] + rang:
                  intervals.append((trails.iloc[j]['name'], duration, 
                                    trails['duration'][j], frameCount,  
                                   trails['frameCount'][j], beginIndex, endIndex,
@@ -121,7 +121,7 @@ def getTrailIntervals(beeps, trails, sampleRate):
 def getTrailsInfo():
     trailsFile = 'C:\\cStorage\\Datasets\\WhiteBallExp\\' + \
       'trails\\25fps\\data\\summaries_2021-01-14 02-02-21.csv'
-    return pd.read_csv(trailsFile)
+    return pd.read_csv(trailsFile).set_index('name')
 
 
 def getTrailIntervalsDataFrame(beeps, trails, sampleRate, fps = 25):
@@ -144,7 +144,7 @@ def printAllBeeps():
         printBeeps(beeps)
         print()
 
-def initializeRecorder( path, id, trailName, fps = 25, dims = (1280, 720)):
+def initializeRecorder( path, id, trailName, fps = 25, dims = (1280, 720)): #(640, 360)
     fourcc = cv2.VideoWriter_fourcc(*'MP42')
     dir = path + ('%s%s' % (id, os.path.sep))
     if not os.path.isdir(dir):
@@ -174,34 +174,108 @@ def openVideo(path):
                 print('Something Wrong')
             break
         frameCount += 1
-        #if frameCount > 7000:
-        #    break
         frames.append(frame)
     cap.release()    
     return frames
 
 def writeTrailRecording(video, id, trailName, beginIndex, length):
-    beginIndex = int(beginIndex)
+    beginIndex, length = int(beginIndex), int(length)
     recorder = initializeRecorder('', id, trailName)
     for f in video[beginIndex:beginIndex+length]:
         recorder.write(f.astype(np.uint8))
     recorder.release()
 
-def main():
-    beepAudio_sr, beepAudio = wavfile.read('beep.wav')
-    _, meetingAudio = readMeetingAudio('P2.wav')
+def splitSubject(subj = 'P8'):
+    beepAudio_sr, beepAudio = wavfile.read('Files/beep.wav')
+    _, meetingAudio = readMeetingAudio('Files/%s.wav' % subj)
     beeps = detectBeeps(meetingAudio, beepAudio, beepAudio_sr)
     trails = getTrailsInfo()
     df = getTrailIntervalsDataFrame(beeps, trails, beepAudio_sr)
     #print(df['BeginFrame'])
 
-    p = 'C:\\cStorage\\Datasets\\WhiteBallExp\\Subjects\\Actual Zoom Recordings\\P2.mp4'
+    p = 'C:\\cStorage\\Datasets\\WhiteBallExp\\Subjects\\Actual Zoom Recordings\\%s.mp4' % subj
     video = openVideo(p)
     for name in df.index:
         t = df.loc[name]
-        print(int(t['BeginFrame']))
-        #writeTrailRecording(video, '2', name, t['BeginFrame'], t['TrailFrameCount'])
+        try:
+            print(int(t['BeginFrame']))
+            writeTrailRecording(video, subj[-1], name, t['BeginFrame'], t['TrailFrameCount'])
+        except TypeError:
+            print(t['BeginFrame'])
+            for b, t in zip(t['BeginFrame'].values, t['TrailFrameCount'].values):
+                b = int(round(b))
+                print(b)
+                writeTrailRecording(video, subj[-1], name, b, int(t))
+                
+def extractSubjectTrail(subj = 'P8', fps = 25):
+    beginMoments = {}
+    with open('Indices/%s.csv' % subj, 'r') as fle:
+        next(fle)
+        for line in fle:
+            tName, bMoment = line[:-1].split(',')
+            if bMoment != 'Unknown':
+                m, s, f = bMoment.split(':')
+                bFrame = int(m)*60*fps + int(s)*fps + int(f)
+                beginMoments[bFrame] = tName
+
+    trails = getTrailsInfo()
+    p = 'C:\\cStorage\\Datasets\\WhiteBallExp\\Subjects\\Actual Zoom Recordings\\%s.mp4' % subj
+    video = openVideo(p)
+    for bFrame in beginMoments:
+        tName = beginMoments[bFrame]
+        t = trails.loc[tName]
+        #print(tName, bFrame, t['frameCount']) 
+        writeTrailRecording(video, subj[-1], tName, bFrame, t['frameCount'])
+
+def extractSubjectTrail2(subj = 'P8', fps = 25):
+    beginMoments = {}
+    with open('Indices/%s.csv' % subj, 'r') as fle:
+        next(fle)
+        for line in fle:
+            tName, bMoment = line[:-1].split(',')
+            if bMoment != 'Unknown':
+                m, s, f = bMoment.split(':')
+                bFrame = int(m)*60*fps + int(s)*fps + int(f)
+                beginMoments[bFrame] = tName
+
+    trails = getTrailsInfo()
+    p = 'C:\\cStorage\\Datasets\\WhiteBallExp\\Subjects\\Actual Zoom Recordings\\%s.mp4' % subj
     
+    cap = cv2.VideoCapture(p)
+    frameCount = 0
+    ret = True
+    recorder = None
+    count = 0
+    while(ret):
+        ret, frame = cap.read()
+        if not ret:
+            if frameCount < 1:
+                print('Something Wrong')
+            break
+
+        if frameCount in beginMoments:
+            tName = beginMoments[frameCount]
+            t = trails.loc[tName]
+            recorder = initializeRecorder('', subj[-1], tName)
+            count = t['frameCount']
+
+        if count > 0:
+            if not recorder is None:
+                recorder.write(frame.astype(np.uint8))
+                count -= 1
+            if count == 0:
+               recorder.release()
+               recorder = None
+
+        frameCount += 1
+    cap.release()    
+    
+def main():
+    #splitSubject('P6')
+    #for i in range(1, 9):
+    #    splitSubject('P%d' % i)
+
+    extractSubjectTrail2('P5')
 
 if __name__ == '__main__':
     main()
