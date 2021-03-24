@@ -1,8 +1,17 @@
 from .MappingFunctions import Boundary, StaticMapping, DynamicMapping
+from datetime import datetime
+from ... import Paths
+import numpy as np
 import cv2
+import os
 
 class InputEstimationVisualizer(object):
     
+    def __init__(self, sceneScale = 1,
+                landmarkColorStr = '#00ff00', screenColorStr = '#0000ff'):
+        super()
+        self._size = (1280, 720)
+
     def addBox(self, frame, pPts):
         color = (255, 255, 255)
         cv2.polylines(frame, [pPts], True, color, 2, cv2.LINE_AA)
@@ -132,10 +141,47 @@ class InputEstimationVisualizer(object):
                 if not k:
                     break
             return
-        jointStreamer = zip(*(postData + (streamer,)))
-        for headGaze, pose, landmarks, pPts, frame in jointStreamer:
-            k = self.showFrameWithAllInputs(frame, pPts, 
-                                            landmarks, headGaze, pose)
-            if not k:
-                break
+        else:
+            jointStreamer = zip(*(postData + (streamer,)))
+            for headGaze, pose, landmarks, pPts, frame in jointStreamer:
+                k = self.showFrameWithAllInputs(frame, pPts, 
+                                                landmarks, headGaze, pose)
+                if not k:
+                    break
+            return
+       
+    def __initializeRecorder(self, id, trailName, fps = 30, dims = (1280, 720)):
+        fourcc = cv2.VideoWriter_fourcc(*'MP42')
+        dir = Paths.MergedVideosFolder + ('%s%s' % (id, Paths.sep))
+        if not os.path.isdir(dir):
+            os.makedirs(dir, exist_ok = True)
+        now = str(datetime.now())[:-7].replace(':', '-').replace(' ', '_')
+        recordName = trailName + '_%s_%s_WithAllInput.avi' % (id, now)
+        print(dir + recordName, 'will be written')
+        print(dims)
+        return  cv2.VideoWriter(dir + recordName, fourcc, fps, dims)
+ 
+    def recordSubjectVideoWithPostdata(self, postData, id, trailName, streamer):
+        recorder = self.__initializeRecorder(id, trailName, dims = (1280, 720))
+        print(self._size)
+        if not isinstance(postData, tuple):
+            jointStreamer = zip(postData, streamer)
+            for landmarks, frame in jointStreamer:
+                frame = self.addAllInputs(frame, landmarks = landmarks)
+                k = self.showFrame(frame)
+                if not k:
+                    recorder.release()
+                    break
+                recorder.write(frame.astype(np.uint8))
+        else:
+            jointStreamer = zip(*(postData + (streamer,)))
+            for headGaze, pose, landmarks, pPts, frame in jointStreamer:
+                frame = self.addAllInputs(frame, pPts, landmarks, outputValues)
+                k = self.showFrame(frame)
+                if not k:
+                    recorder.release()
+                    break
+                recorder.write(frame.astype(np.uint8))
+        recorder.release()
         return
+    

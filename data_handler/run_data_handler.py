@@ -11,7 +11,8 @@ def testDataHandler():
     #handler.playSubjectTrailWithAllInputs(2, 'infinity')
     #handler.playSubjectVideoWithHeadGaze(2, 'infinity')
     #handler.play3DSubjectTrailWithHeadGaze(5, 'infinity')
-    handler.replaySubjectVideoWithPostData(1, 'random1_slow')
+    #handler.replaySubjectVideoWithPostData(1, 'random1_slow')
+    handler.recordSubjectVideoWithPostData(3, 'horizontal')
     #handler.replay3DSubjectTrailWithHeadGaze(2, 'infinity')
     #handler.record3DSubjectTrailWithHeadGaze(1, 'zigzag')
 

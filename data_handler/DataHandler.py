@@ -166,6 +166,15 @@ class DataHandler(object):
         postData = self.loadPostDataOfSubjectVideo(id, tName)
         postDataGenerator.replaySubjectVideoWithPostData(postData, path)
     
+    def recordSubjectVideoWithPostData(self, id, tName):
+        if isinstance(id, int): id = str(id)
+        self.readSubjectTrail(id, tName)
+        postDataGenerator = PostDataGenerator()
+        path = self.subjects[id]['ts'][tName]['VideoPath']
+        postData = self.loadPostDataOfSubjectVideo(id, tName)
+        gen, path = self.__playSubjectTrailWith(id, tName)
+        gen.recordSubjectTrailWithPostData(postData, path, id)
+    
     def replay3DSubjectTrailWithHeadGaze(self, id, tName):
         if isinstance(id, int): id = str(id)
         self.readSubjectTrail(id, tName)

@@ -91,9 +91,12 @@ class PostDataGenerator(object):
                                                        streamer)
         return
     
-    def _getTrailStreamer(self, subjectVideoPath, id):
+    def _getTrailName(self, subjectVideoPath, id):
         subjectVideoName = subjectVideoPath.split(Paths.sep)[-1].split('_')
-        trail = '_'.join(subjectVideoName[:subjectVideoName.index(id)])
+        return '_'.join(subjectVideoName[:subjectVideoName.index(id)])
+    
+    def _getTrailStreamer(self, subjectVideoPath, id):
+        trail = self._getTrailName()
         trailVideoPath = Paths.TrailVideosFolder + trail + '.avi'
         return trail, self.openVideo(trailVideoPath)
 
@@ -185,9 +188,16 @@ class PostDataGenerator(object):
         self.__visualizer.replaySubjectVideoWithPostData(postDataGenerators, 
                                                          streamer)
         return
-
+    
+    def recordSubjectTrailWithPostData(self, postData, subjectVideoPath, id):
+        trail = self._getTrailName(subjectVideoPath, id)
+        streamer = self.openVideo(subjectVideoPath)
+        postDataGenerators = self._getPostDataAsGenerators(postData)
+        self.__visualizer.recordSubjectVideoWithPostdata(postDataGenerators, id,
+                                                        trail, streamer)
+        
     def replay3DSubjectTrailWithPostData(self, postData, subjectVideoPath, id):
-        trail, trailStreamer = self._getTrailStreamer(subjectVideoPath, id)
+        trail = self._getTrailStreamer(subjectVideoPath, id)
         streamer = self.openVideo(subjectVideoPath)
         postDataGenerators = self._getPostDataAsGenerators(postData)
         self.__visualizer.replay3DSubjectTrailWithPostData(postDataGenerators, 

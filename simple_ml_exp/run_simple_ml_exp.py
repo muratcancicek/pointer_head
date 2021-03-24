@@ -121,7 +121,8 @@ def main(DataHandler):
    #testKeras(DataHandler, 2)
    #testCorrelation(DataHandler, 3)
    #testLandmarkCorrelation(DataHandler, 5)
-   for i in range(8, 9): testPlottingLandmarks(DataHandler, subjId = i)
+   #for i in range(1, 9): testPlottingLandmarks(DataHandler, subjId = i)
+   testPlottingLandmarks(DataHandler, subjId = 8)
    #testPlottingFilters(DataHandler, 2, 'random5')
    #testNoise(DataHandler, 3), 
    #testPlottingAllSubjects(DataHandler, 3, 'zigzag')

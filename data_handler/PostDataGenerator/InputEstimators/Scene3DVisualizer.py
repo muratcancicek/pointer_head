@@ -4,8 +4,8 @@ from ...Paths import CV2Res10SSD_frozen_face_model_path
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot
 from datetime import datetime
-import numpy as np
 from ... import Paths
+import numpy as np
 import math
 import cv2
 import os
@@ -312,23 +312,23 @@ class Scene3DVisualizer(InputEstimationVisualizer):
                 break
         return
     
-    def initializeRecorder(self, id, trailName, fps = 30, dims = (1920, 1080)):
-        fourcc = cv2.VideoWriter_fourcc(*'MP42')
-        dir = Paths.MergedVideosFolder + ('%s%s' % (id, Paths.sep))
-        if not os.path.isdir(dir):
-            os.makedirs(dir, exist_ok = True)
-        now = str(datetime.now())[:-7].replace(':', '-').replace(' ', '_')
-        recordName = trailName + '_%s_%s_merged3DScene.avi' % (id, now)
-        print(dir + recordName, 'will be written')
-        return  cv2.VideoWriter(dir + recordName, fourcc, fps, dims)
+    #def initializeRecorder(self, id, trailName, fps = 30, dims = (1920, 1080)):
+    #    fourcc = cv2.VideoWriter_fourcc(*'MP42')
+    #    dir = Paths.MergedVideosFolder + ('%s%s' % (id, Paths.sep))
+    #    if not os.path.isdir(dir):
+    #        os.makedirs(dir, exist_ok = True)
+    #    now = str(datetime.now())[:-7].replace(':', '-').replace(' ', '_')
+    #    recordName = trailName + '_%s_%s_merged3DScene.avi' % (id, now)
+    #    print(dir + recordName, 'will be written')
+    #    return  cv2.VideoWriter(dir + recordName, fourcc, fps, dims)
  
-    def _write(self, recorder, frame):
-        background = np.zeros((self._size[1], self._size[0], 3))
-        xb = int((self._size[0]-frame.shape[1])/2)
-        yb = int((self._size[1]-frame.shape[0])/2)
-        xe, ye = xb+frame.shape[1], yb+frame.shape[0]
-        background[yb:ye, xb:xe] = frame
-        recorder.write(background.astype(np.uint8))
+    #def _write(self, recorder, frame):
+    #    background = np.zeros((self._size[1], self._size[0], 3))
+    #    xb = int((self._size[0]-frame.shape[1])/2)
+    #    yb = int((self._size[1]-frame.shape[0])/2)
+    #    xe, ye = xb+frame.shape[1], yb+frame.shape[0]
+    #    background[yb:ye, xb:xe] = frame
+    #    recorder.write(background.astype(np.uint8))
 
     def recordSubjectSceneVideoWithHeadGaze(self, estimator, id, trailName, 
                                      streamer, trailStreamer = None):

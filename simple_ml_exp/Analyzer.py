@@ -167,8 +167,17 @@ class Analyzer(object):
         #pairs = [(d[:100], f) for d, f in pairs]
         return pairs
     
+    def _nonzeroLandmarks(self, inputLandmark):
+        x, y = inputLandmark[:, 0], inputLandmark[:, 1]
+        xm, ym = x[x > 0].mean(), y[y > 0].mean()
+        x[x == 0] = xm
+        y[y == 0] = ym
+        inputLandmark[:, 0], inputLandmark[:, 1] = x, y
+        return inputLandmark
+    
     def plotInputLandmarksFor(self, handler, subjId, tName, path):
         target, inputLandmark = handler.getInputLandmarkToPointingDataFor(subjId, tName)
+        inputLandmark = self._nonzeroLandmarks(inputLandmark)
         pair = ((target, 'Target'), (inputLandmark, 'Inputlandmark'))
         #f = self.plotHeadGazeAndPointingFo(*pair, yLim = True, plot = True, twinx = True,
         #                                   title = 'InputLandmarks for '+tName)
