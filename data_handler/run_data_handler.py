@@ -7,11 +7,11 @@ def testDataHandler():
     #handler.savePostLandmarksFromSubjectVideo(5, 'infinity')
     #for i in range(1, 3): handler.saveAllPostDataForSubject(i)
     #for i in range(1, 9): handler.saveAllPostLandmarksForSubject(i)
-    handler.playSubjectTrailWithLandmarks(2, 'infinity')
+    #handler.playSubjectTrailWithLandmarks(2, 'infinity')
     #handler.playSubjectTrailWithAllInputs(2, 'infinity')
     #handler.playSubjectVideoWithHeadGaze(2, 'infinity')
     #handler.play3DSubjectTrailWithHeadGaze(5, 'infinity')
-    #handler.replaySubjectVideoWithPostData(2, 'infinity')
+    handler.replaySubjectVideoWithPostData(1, 'random1_slow')
     #handler.replay3DSubjectTrailWithHeadGaze(2, 'infinity')
     #handler.record3DSubjectTrailWithHeadGaze(1, 'zigzag')
 

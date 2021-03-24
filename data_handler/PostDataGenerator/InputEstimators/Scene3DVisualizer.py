@@ -362,4 +362,3 @@ class Scene3DVisualizer(InputEstimationVisualizer):
             if not k:
                 break
         return
-    

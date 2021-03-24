@@ -168,6 +168,9 @@ class PostDataGenerator(object):
     
     def _getPostDataAsGenerators(self, postData):
         PDG = PostDataGenerator
+        if postData.shape[-1] == 136:
+            landmarks = (l.reshape((68, 2)) for l in postData)
+            return landmarks
         headGazes = (l[PDG.gaze_b_ind:PDG.gaze_e_ind] for l in postData)
         poses = (l[PDG.pose_b_ind:PDG.pose_e_ind] for l in postData)
         landmarks = (l[PDG.landmark_b_ind:PDG.landmark_e_ind].reshape((68, 2)) 

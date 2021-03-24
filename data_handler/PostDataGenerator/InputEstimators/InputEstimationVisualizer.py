@@ -125,6 +125,13 @@ class InputEstimationVisualizer(object):
         return
     
     def replaySubjectVideoWithPostData(self, postData, streamer):
+        if not isinstance(postData, tuple):
+            jointStreamer = zip(postData, streamer)
+            for landmarks, frame in jointStreamer:
+                k = self.showFrameWithAllInputs(frame, landmarks = landmarks)
+                if not k:
+                    break
+            return
         jointStreamer = zip(*(postData + (streamer,)))
         for headGaze, pose, landmarks, pPts, frame in jointStreamer:
             k = self.showFrameWithAllInputs(frame, pPts, 
